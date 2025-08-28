@@ -4,7 +4,9 @@
 package main
 
 import (
+	"crypto/rand"
 	"embed"
+	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
@@ -26,15 +28,18 @@ import (
 
 var tokenAuth *jwtauth.JWTAuth
 var auth *spotifyauth.Authenticator
-var state string
 
 //go:embed assets/*
 var assets embed.FS
 
 func init() {
-	tokenAuth = jwtauth.New("HS256", []byte("secret"), nil) // replace with secret key
+	tokenSecret := os.Getenv("TOKEN_SECRET")
+	if tokenSecret == "" {
+		// default token secret for development
+		tokenSecret = "secret"
+	}
 
-	state = "test"
+	tokenAuth = jwtauth.New("HS256", []byte(tokenSecret), nil)
 
 	host := os.Getenv("HOST")
 	if host == "" {
@@ -119,12 +124,47 @@ func main() {
 		r.Get("/auth/login", func(w http.ResponseWriter, r *http.Request) {
 			// get the user to this URL - how you do that is up to you
 			// you should specify a unique state string to identify the session
+
+			b := make([]byte, 32)
+			if _, err := rand.Read(b); err != nil {
+				http.Error(w, "Failed to generate state", http.StatusInternalServerError)
+				return
+			}
+			state := base64.URLEncoding.EncodeToString(b)
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "state",
+				Value:    state,
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   int((time.Minute * 5) / time.Second),
+			})
+
 			url := auth.AuthURL(state)
 
 			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 		})
 
 		r.Get("/auth/callback", func(w http.ResponseWriter, r *http.Request) {
+			stateCookie, err := r.Cookie("state")
+			if err != nil {
+				log.Println(err)
+				http.Error(w, "Failed to get state cookie", http.StatusInternalServerError)
+				return
+			}
+			if stateCookie == nil {
+				http.Error(w, "Failed to get state cookie", http.StatusInternalServerError)
+				return
+			}
+			state := stateCookie.Value
+			http.SetCookie(w, &http.Cookie{
+				Name:     "state",
+				Value:    "",
+				Path:     "/",
+				HttpOnly: true,
+				MaxAge:   -1,
+			})
+
 			token, err := auth.Token(r.Context(), state, r)
 			if err != nil {
 				log.Println(err)

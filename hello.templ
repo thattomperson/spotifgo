@@ -17,12 +17,12 @@ templ layout() {
 templ hello(signals TemplCounterSignals) {
 	@layout() {
 		<div
-		id="container"
-		data-signals={ templ.JSONString(signals) }
-		data-on-signal-patch="@post('/rpc/update-selected-song')"
-		data-on-signal-patch-filter="{include: /^selected_song$/}"
-		data-on-interval__duration.10s.leading="@post('/rpc/get-playing-song')"
-		class="flex flex-row gap-4"
+			id="container"
+			data-signals={ templ.JSONString(signals) }
+			data-on-signal-patch="@post('/rpc/update-selected-song')"
+			data-on-signal-patch-filter="{include: /^selected_song$/}"
+			data-on-interval__duration.10s.leading="@post('/rpc/get-playing-song')"
+			class="flex flex-row gap-4"
 		>
 			<div class="flex flex-col gap-4 w-1/2">
 				<h1 class="text-2xl font-bold">Now Playing</h1>

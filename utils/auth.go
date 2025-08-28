@@ -3,8 +3,10 @@ package utils
 import (
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/go-chi/jwtauth/v5"
+	"golang.org/x/oauth2"
 )
 
 type authOptions struct {
@@ -46,4 +48,29 @@ func AuthMiddleware(ja *jwtauth.JWTAuth, opts ...AuthOption) func(http.Handler) 
 			next.ServeHTTP(w, r)
 		})
 	}
+}
+
+func OAuthTokenFromInterface(rawToken map[string]interface{}) *oauth2.Token {
+	token := &oauth2.Token{
+		AccessToken:  "",
+		TokenType:    "",
+		RefreshToken: "",
+	}
+	if accessToken, ok := rawToken["access_token"].(string); ok {
+		token.AccessToken = accessToken
+	}
+	if tokenType, ok := rawToken["token_type"].(string); ok {
+		token.TokenType = tokenType
+	}
+	if refreshToken, ok := rawToken["refresh_token"].(string); ok {
+		token.RefreshToken = refreshToken
+	}
+	if expiry, ok := rawToken["expiry"].(string); ok {
+		// Try to parse expiry as RFC3339
+		if t, err := time.Parse(time.RFC3339, expiry); err == nil {
+			token.Expiry = t
+		}
+	}
+
+	return token
 }

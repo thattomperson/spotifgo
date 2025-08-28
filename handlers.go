@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"spotifgo/components/toast"
 	trackcard "spotifgo/components/track-card"
+	"spotifgo/utils"
 
 	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
@@ -11,7 +12,7 @@ import (
 
 func GetPlayingSong(w http.ResponseWriter, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
-	store := getStore[TemplCounterSignals](w, r)
+	store := utils.ReadSignals[TemplCounterSignals](w, r)
 	sse := datastar.NewSSE(w, r)
 
 	song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
@@ -37,7 +38,7 @@ func GetPlayingSong(w http.ResponseWriter, r *http.Request) {
 
 	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
 		ID: "recent-songs",
-		Tracks: mapSlice(songs, func(item spotify.RecentlyPlayedItem) spotify.SimpleTrack {
+		Tracks: utils.MapSlice(songs, func(item spotify.RecentlyPlayedItem) spotify.SimpleTrack {
 			return item.Track
 		}),
 	}), datastar.WithSelectorID("recent-songs"))
@@ -70,7 +71,7 @@ func QueueTrack(w http.ResponseWriter, r *http.Request) {
 
 func UpdateSelectedSong(w http.ResponseWriter, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
-	store := getStore[TemplCounterSignals](w, r)
+	store := utils.ReadSignals[TemplCounterSignals](w, r)
 	sse := datastar.NewSSE(w, r)
 
 	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(store.SelectedSong))

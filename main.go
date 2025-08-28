@@ -20,10 +20,8 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
-	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
-	"golang.org/x/oauth2"
 )
 
 var tokenAuth *jwtauth.JWTAuth
@@ -62,15 +60,6 @@ func init() {
 	)
 }
 
-func getStore[T any](w http.ResponseWriter, r *http.Request) *T {
-	var store = new(T)
-	if err := datastar.ReadSignals(r, store); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-		return nil
-	}
-	return store
-}
-
 func getSpotifyClient(r *http.Request) *spotify.Client {
 	_, claims, err := jwtauth.FromContext(r.Context())
 
@@ -82,37 +71,8 @@ func getSpotifyClient(r *http.Request) *spotify.Client {
 	if !ok {
 		return nil
 	}
-
-	token := &oauth2.Token{
-		AccessToken:  "",
-		TokenType:    "",
-		RefreshToken: "",
-	}
-	if accessToken, ok := spotifyToken["access_token"].(string); ok {
-		token.AccessToken = accessToken
-	}
-	if tokenType, ok := spotifyToken["token_type"].(string); ok {
-		token.TokenType = tokenType
-	}
-	if refreshToken, ok := spotifyToken["refresh_token"].(string); ok {
-		token.RefreshToken = refreshToken
-	}
-	if expiry, ok := spotifyToken["expiry"].(string); ok {
-		// Try to parse expiry as RFC3339
-		if t, err := time.Parse(time.RFC3339, expiry); err == nil {
-			token.Expiry = t
-		}
-	}
-
+	token := utils.OAuthTokenFromInterface(spotifyToken)
 	return spotify.New(auth.Client(r.Context(), token))
-}
-
-func mapSlice[T any, R any](slice []T, fn func(T) R) []R {
-	var result []R
-	for _, item := range slice {
-		result = append(result, fn(item))
-	}
-	return result
 }
 
 func main() {

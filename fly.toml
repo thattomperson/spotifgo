@@ -1,0 +1,23 @@
+# fly.toml app configuration file generated for spotifgo on 2025-08-28T13:56:36+09:30
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'spotifgo'
+primary_region = 'syd'
+
+[build]
+
+[http_service]
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'stop'
+  auto_start_machines = true
+  min_machines_running = 0
+  processes = ['app']
+
+[env]
+  HOST = "https://spotifgo.fly.dev"
+
+[[vm]]
+  size = 'shared-cpu-1x'

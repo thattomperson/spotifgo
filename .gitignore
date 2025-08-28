@@ -1,0 +1,7 @@
+/vendor
+/tmp
+/assets/css/output.css
+
+*_templ.go
+
+.vscode

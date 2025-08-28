@@ -1,0 +1,41 @@
+package main
+
+import "spotifgo/components/toast"
+
+type TemplCounterSignals struct {
+	SelectedSong string `json:"selected_song"`
+}
+
+templ layout() {
+	<link rel="stylesheet" href="/assets/css/output.css"/>
+	{ children... }
+	<div id="toasts"></div>
+	<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
+	@toast.Script()
+}
+
+templ hello(signals TemplCounterSignals) {
+	@layout() {
+		<div
+		id="container"
+		data-signals={ templ.JSONString(signals) }
+		data-on-signal-patch="@post('/rpc/update-selected-song')"
+		data-on-signal-patch-filter="{include: /^selected_song$/}"
+		data-on-interval__duration.10s.leading="@post('/rpc/get-playing-song')"
+		class="flex flex-row gap-4"
+		>
+			<div class="flex flex-col gap-4 w-1/2">
+				<h1 class="text-2xl font-bold">Now Playing</h1>
+				<div id="playing-song"></div>
+				<h2 class="text-xl font-bold">Recently Played</h2>
+				<div id="recent-songs"></div>
+			</div>
+			<div class="flex flex-col gap-4 w-1/2">
+				<h1 class="text-2xl font-bold">Based on</h1>
+				<div id="selected-song"></div>
+				<h2 class="text-xl font-bold">We Recommended</h2>
+				<div id="recommended-songs"></div>
+			</div>
+		</div>
+	}
+}

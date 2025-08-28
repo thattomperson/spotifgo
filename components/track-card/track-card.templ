@@ -1,0 +1,72 @@
+package trackcard
+
+import (
+  spotify "github.com/zmb3/spotify/v2"
+	"spotifgo/components/card"
+	"spotifgo/components/button"
+	"strconv"
+)
+
+type Props struct {
+  ID string
+	Track spotify.SimpleTrack
+}
+
+type ListProps struct {
+  ID string
+  Tracks []spotify.SimpleTrack
+}
+
+templ List(props ListProps) {
+  <div id={ props.ID } class="flex flex-col gap-4" >
+    for i, track := range props.Tracks {
+      @TrackCard(Props{
+        ID: props.ID + "-" + strconv.Itoa(i),
+        Track: track,
+      })
+    }
+  </div>
+}
+
+templ TrackCard(props Props) {
+  @card.Card(card.Props{ID: props.ID, Class: "overflow-hidden w-full flex flex-row"}) {
+    <div class="w-30 h-30">
+    if (len(props.Track.Album.Images) > 0) {
+      <img src={ props.Track.Album.Images[0].URL } alt={ props.Track.Album.Name } />
+    } else {
+      <div class="bg-gray-200 w-full h-full"></div>
+    }
+    </div>
+    <div class="flex flex-col gap-4">
+    @card.Content() {
+        @card.Title() {
+          { props.Track.Name }
+        }
+        @card.Description() {
+          { props.Track.Artists[0].Name }
+        }
+      }
+      @card.Footer() {
+        @button.Button(button.Props{
+          Variant: button.VariantDefault,
+          Attributes: templ.Attributes{
+            "data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
+          },
+        }) {
+          Select
+        }
+        <form>
+          <input type="hidden" name="track_id" value={ props.Track.ID.String() } />
+          @button.Button(button.Props{
+            Variant: button.VariantSecondary,
+            Attributes: templ.Attributes{
+              "data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
+            },
+          }) {
+            Queue
+          }
+        </form>
+      }
+    </div>
+  }
+}

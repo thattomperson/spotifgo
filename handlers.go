@@ -1,92 +1,119 @@
 package main
 
 import (
+	"log"
 	"net/http"
 	"spotifgo/components/toast"
 	trackcard "spotifgo/components/track-card"
 	"spotifgo/utils"
+	"sync"
 
 	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
 )
 
-func GetPlayingSong(w http.ResponseWriter, r *http.Request) {
+func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
-	store := utils.ReadSignals[TemplCounterSignals](w, r)
-	sse := datastar.NewSSE(w, r)
+	wg := sync.WaitGroup{}
 
-	song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+	wg.Go(func() {
+		defer wg.Done()
+		song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
+		if err != nil {
+			log.Printf("Failed to get currently playing song: %v", err)
+			return
+		}
 
-	if store.SelectedSong == "" {
-		store.SelectedSong = song.Item.ID.String()
-	}
+		if signals.SelectedSong == "" {
+			signals.SelectedSong = song.Item.ID.String()
+		}
 
-	sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
-		ID:    "playing-song",
-		Track: song.Item.SimpleTrack,
-	}), datastar.WithSelectorID("playing-song"))
+		track := song.Item.SimpleTrack
+		track.Album = song.Item.Album
 
-	songs, err := spotifyClient.PlayerRecentlyPlayed(r.Context())
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
+		sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
+			ID:    "playing-song",
+			Track: track,
+		}), datastar.WithSelectorID("playing-song"))
+	})
+	wg.Go(func() {
+		defer wg.Done()
+		songs, err := spotifyClient.PlayerRecentlyPlayed(r.Context())
+		if err != nil {
+			log.Printf("Failed to get recently played songs: %v", err)
+			return
+		}
 
-	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
-		ID: "recent-songs",
-		Tracks: utils.MapSlice(songs, func(item spotify.RecentlyPlayedItem) spotify.SimpleTrack {
-			return item.Track
-		}),
-	}), datastar.WithSelectorID("recent-songs"))
+		sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
+			ID: "recent-songs",
+			Tracks: utils.MapSlice(songs, func(item spotify.RecentlyPlayedItem) spotify.SimpleTrack {
+				return item.Track
+			}),
+		}), datastar.WithSelectorID("recent-songs"))
+	})
 
-	sse.MarshalAndPatchSignals(store)
+	wg.Wait()
+	sse.MarshalAndPatchSignals(signals)
 }
 
-func QueueTrack(w http.ResponseWriter, r *http.Request) {
-	r.ParseForm()
+func QueueTrack(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
-	sse := datastar.NewSSE(w, r)
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Failed to get track: %v", err)
 		return
 	}
 
 	err = spotifyClient.QueueSong(r.Context(), track.ID)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		log.Printf("Failed to queue song: %v", err)
 		return
 	}
 
 	sse.PatchElementTempl(toast.Toast(toast.Props{
-		ID:    "queue-toast",
-		Title: "Queued " + track.Name,
+		Title:       "Queued " + track.Name,
+		Description: "You can now enjoy this song in your queue.",
 	}), datastar.WithSelectorID("toasts"), datastar.WithModeAppend())
 }
 
-func UpdateSelectedSong(w http.ResponseWriter, r *http.Request) {
+func UpdateSelectedSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
-	store := utils.ReadSignals[TemplCounterSignals](w, r)
-	sse := datastar.NewSSE(w, r)
 
-	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(store.SelectedSong))
+	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(signals.SelectedSong))
+	track := song.SimpleTrack
+	track.Album = song.Album
 
 	sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
 		ID:    "selected-song",
-		Track: song.SimpleTrack,
+		Track: track,
 	}), datastar.WithSelectorID("selected-song"))
 
 	tracks, _ := spotifyClient.GetRecommendations(r.Context(), spotify.Seeds{
-		Tracks: []spotify.ID{spotify.ID(store.SelectedSong)},
+		Tracks: []spotify.ID{spotify.ID(signals.SelectedSong)},
 	}, nil)
 
 	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
 		ID:     "recommended-songs",
 		Tracks: tracks.Tracks,
 	}), datastar.WithSelectorID("recommended-songs"))
+}
+
+func GetTopSongs(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
+	spotifyClient := getSpotifyClient(r)
+
+	songs, err := spotifyClient.CurrentUsersTopTracks(r.Context())
+	if err != nil {
+		log.Printf("Failed to get top songs: %v", err)
+		return
+	}
+
+	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
+		ID: "top-songs",
+		Tracks: utils.MapSlice(songs.Tracks, func(item spotify.FullTrack) spotify.SimpleTrack {
+			track := item.SimpleTrack
+			track.Album = item.Album
+			return track
+		}),
+	}), datastar.WithSelectorID("top-songs"))
 }

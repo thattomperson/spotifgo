@@ -3,7 +3,7 @@ watch-templ:
 	go tool templ generate --watch --proxy="http://localhost:8090" --open-browser=false
 
 # Run air for Go hot reload
-server:
+watch-server:
 	go tool air \
 	--build.cmd "go build -o tmp/bin/main ." \
 	--build.bin "tmp/bin/main" \

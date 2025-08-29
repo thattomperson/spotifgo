@@ -44,28 +44,32 @@ templ TrackCard(props Props) {
 				}
 				@card.Description() {
 					{ props.Track.Artists[0].Name }
+					<br/>
+					{ props.Track.Album.Name }
 				}
 			}
 			@card.Footer() {
-				@button.Button(button.Props{
-					Variant: button.VariantDefault,
-					Attributes: templ.Attributes{
-						"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
-					},
-				}) {
-					Select
-				}
-				<form>
-					<input type="hidden" name="track_id" value={ props.Track.ID.String() }/>
+				<div class="flex flex-row gap-2">
 					@button.Button(button.Props{
-						Variant: button.VariantSecondary,
+						Variant: button.VariantDefault,
 						Attributes: templ.Attributes{
-							"data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
+							"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
 						},
 					}) {
-						Queue
+						Select
 					}
-				</form>
+					<form>
+						<input type="hidden" name="track_id" value={ props.Track.ID.String() }/>
+						@button.Button(button.Props{
+							Variant: button.VariantSecondary,
+							Attributes: templ.Attributes{
+								"data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
+							},
+						}) {
+							Queue
+						}
+					</form>
+				</div>
 			}
 		</div>
 	}

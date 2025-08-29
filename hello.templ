@@ -22,6 +22,7 @@ templ hello(signals TemplCounterSignals) {
 			data-on-signal-patch="@post('/rpc/update-selected-song')"
 			data-on-signal-patch-filter="{include: /^selected_song$/}"
 			data-on-interval__duration.10s.leading="@post('/rpc/get-playing-song')"
+			data-on-load="@post('/rpc/get-top-songs')"
 			class="flex flex-row gap-4"
 		>
 			<div class="flex flex-col gap-4 w-1/2">
@@ -35,6 +36,12 @@ templ hello(signals TemplCounterSignals) {
 				<div id="selected-song"></div>
 				<h2 class="text-xl font-bold">We Recommended</h2>
 				<div id="recommended-songs"></div>
+			</div>
+			<div class="flex flex-col gap-4 w-1/2">
+				<h1 class="text-2xl font-bold">You</h1>
+				<div id="you"></div>
+				<h2 class="text-xl font-bold">Top Songs</h2>
+				<div id="top-songs"></div>
 			</div>
 		</div>
 	}

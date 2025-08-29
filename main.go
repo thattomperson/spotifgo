@@ -20,6 +20,7 @@ import (
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
+	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
@@ -54,6 +55,7 @@ func init() {
 			spotifyauth.ScopeUserReadPlaybackState,
 			spotifyauth.ScopeUserModifyPlaybackState,
 			spotifyauth.ScopeUserReadRecentlyPlayed,
+			spotifyauth.ScopeUserTopRead,
 		),
 		spotifyauth.WithClientID(os.Getenv("SPOTIFY_CLIENT_ID")),
 		spotifyauth.WithClientSecret(os.Getenv("SPOTIFY_CLIENT_SECRET")),
@@ -148,9 +150,10 @@ func main() {
 
 		r.Get("/", templ.Handler(hello(TemplCounterSignals{})).ServeHTTP)
 
-		r.Post("/rpc/get-playing-song", GetPlayingSong)
-		r.Post("/rpc/queue-track", QueueTrack)
-		r.Post("/rpc/update-selected-song", UpdateSelectedSong)
+		r.Post("/rpc/get-playing-song", Star(GetPlayingSong))
+		r.Post("/rpc/queue-track", Star(QueueTrack))
+		r.Post("/rpc/update-selected-song", Star(UpdateSelectedSong))
+		r.Post("/rpc/get-top-songs", Star(GetTopSongs))
 	})
 
 	FileServer(r, "/assets", http.FS(must(fs.Sub(assets, "assets"))))
@@ -170,6 +173,19 @@ func must[T any](res T, err error) T {
 		panic(err)
 	}
 	return res
+}
+
+func Star[T any](fn func(*datastar.ServerSentEventGenerator, *T, *http.Request)) http.HandlerFunc {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		r.ParseForm()
+		var store = new(T)
+		if err := datastar.ReadSignals(r, store); err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		sse := datastar.NewSSE(w, r)
+		fn(sse, store, r)
+	})
 }
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {

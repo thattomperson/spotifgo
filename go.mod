@@ -1,8 +1,6 @@
 module spotifgo
 
-go 1.24.2
-
-toolchain go1.24.6
+go 1.25.0
 
 require (
 	github.com/Oudwins/tailwind-merge-go v0.2.0

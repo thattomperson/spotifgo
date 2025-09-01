@@ -17,10 +17,18 @@ func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounte
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
-		defer wg.Done()
 		song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
 		if err != nil {
 			log.Printf("Failed to get currently playing song: %v", err)
+			return
+		}
+
+		if song.Item == nil {
+			sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
+				ID:    "playing-song",
+				Track: spotify.SimpleTrack{Name: "No song playing"},
+			}), datastar.WithSelectorID("playing-song"))
+
 			return
 		}
 
@@ -37,7 +45,6 @@ func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounte
 		}), datastar.WithSelectorID("playing-song"))
 	})
 	wg.Go(func() {
-		defer wg.Done()
 		songs, err := spotifyClient.PlayerRecentlyPlayed(r.Context())
 		if err != nil {
 			log.Printf("Failed to get recently played songs: %v", err)

@@ -16,6 +16,16 @@ templ layout() {
 
 templ hello(signals SpotigoSignals) {
 	@layout() {
+		<!-- Modern header with gradient background -->
+		<header class="glass sticky top-0 z-50 p-6 mb-8">
+			<div class="max-w-7xl mx-auto">
+				<h1 class="text-3xl font-bold tracking-tight">
+					<span class="section-header">Spotifgo</span>
+				</h1>
+				<p class="text-muted-foreground mt-1">Your personalized music discovery dashboard</p>
+			</div>
+		</header>
+
 		<div
 			id="container"
 			data-signals={ templ.JSONString(signals) }
@@ -23,25 +33,48 @@ templ hello(signals SpotigoSignals) {
 			data-on-signal-patch-filter="{include: /^selected_song$/}"
 			data-on-interval__duration.10s.leading="@post('/rpc/get-playing-song', {requestCancellation: 'disabled'})"
 			data-on-load="@post('/rpc/get-top-songs', {requestCancellation: 'disabled'})"
-			class="flex flex-row gap-4 p-4"
+			class="max-w-7xl mx-auto px-6 pb-12"
 		>
-			<div class="flex flex-col gap-4 w-1/2">
-				<h1 class="text-2xl font-bold">Now Playing</h1>
-				<div id="playing-song"></div>
-				<h2 class="text-xl font-bold">Recently Played</h2>
-				<div id="recent-songs"></div>
-			</div>
-			<div class="flex flex-col gap-4 w-1/2">
-				<h1 class="text-2xl font-bold">Based on</h1>
-				<div id="selected-song"></div>
-				<h2 class="text-xl font-bold">We Recommended</h2>
-				<div id="recommended-songs"></div>
-			</div>
-			<div class="flex flex-col gap-4 w-1/2">
-				<h1 class="text-2xl font-bold">You</h1>
-				<div id="you"></div>
-				<h2 class="text-xl font-bold">Top Songs</h2>
-				<div id="top-songs"></div>
+			<!-- Three-column responsive grid -->
+			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+				<!-- Column 1: Now Playing & Recently Played -->
+				<div class="music-column">
+					<div class="music-section">
+						<h2 class="section-header">Now Playing</h2>
+						<div id="playing-song" class="min-h-[120px] flex items-center justify-center"></div>
+					</div>
+					<div class="music-section">
+						<h2 class="section-header">Recently Played</h2>
+						<div id="recent-songs"></div>
+					</div>
+				</div>
+
+				<!-- Column 2: Selection & Recommendations -->
+				<div class="music-column">
+					<div class="music-section">
+						<h2 class="section-header">Based on</h2>
+						<div id="selected-song" class="min-h-[120px] flex items-center justify-center">
+							<p class="text-muted-foreground text-center">Select a song to see recommendations</p>
+						</div>
+					</div>
+					<div class="music-section">
+						<h2 class="section-header">We Recommended</h2>
+						<div id="recommended-songs"></div>
+					</div>
+				</div>
+
+				<!-- Column 3: Top Songs -->
+				<div class="music-column">
+					<div class="music-section">
+						<h2 class="section-header">You</h2>
+						<div id="you" class="glass rounded-xl p-6">
+							<h3 class="music-title mb-2">Your Music Profile</h3>
+							<p class="music-artist">Discover your most played tracks and find new music based on your taste.</p>
+						</div>
+						<h2 class="section-header">Top Songs</h2>
+						<div id="top-songs"></div>
+					</div>
+				</div>
 			</div>
 		</div>
 	}

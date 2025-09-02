@@ -18,7 +18,7 @@ type ListProps struct {
 }
 
 templ List(props ListProps) {
-	<div id={ props.ID } class="flex flex-col gap-4">
+	<div id={ props.ID } class="flex flex-col gap-3">
 		for i, track := range props.Tracks {
 			@TrackCard(Props{
 				ID:    props.ID + "-" + strconv.Itoa(i),
@@ -29,52 +29,77 @@ templ List(props ListProps) {
 }
 
 templ TrackCardEmpty() {
-	@TrackCard(Props{Track: spotify.SimpleTrack{Name: "No song playing"}})
+	@card.Card(card.Props{Class: "track-card-enhanced w-full flex flex-col items-center justify-center p-8 text-center"}) {
+		<div class="w-16 h-16 mb-4 bg-gradient-to-br from-muted to-muted/50 rounded-full flex items-center justify-center">
+			<svg class="w-8 h-8 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
+				<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+			</svg>
+		</div>
+		<h3 class="music-title mb-1">No song playing</h3>
+		<p class="music-artist">Start playing music on Spotify to see it here</p>
+	}
 }
 
 templ TrackCard(props Props) {
-	@card.Card(card.Props{ID: props.ID, Class: "overflow-hidden w-full flex flex-row"}) {
-		<div class="w-30 h-30">
+	@card.Card(card.Props{ID: props.ID, Class: "track-card-enhanced w-full flex flex-row p-4"}) {
+		<!-- Album Art Section -->
+		<div class="w-20 h-20 mr-4 flex-shrink-0">
 			if (len(props.Track.Album.Images) > 0) {
-				<img src={ props.Track.Album.Images[0].URL } alt={ props.Track.Album.Name }/>
+				<img 
+					src={ props.Track.Album.Images[0].URL } 
+					alt={ props.Track.Album.Name }
+					class="album-art w-full h-full object-cover"
+				/>
 			} else {
-				<div class="bg-gray-200 w-full h-full"></div>
-			}
-		</div>
-		<div class="flex flex-col gap-4">
-			@card.Content() {
-				@card.Title() {
-					{ props.Track.Name }
-				}
-				@card.Description() {
-					{ props.Track.Artists[0].Name }
-					<br/>
-					{ props.Track.Album.Name }
-				}
-			}
-			@card.Footer() {
-				<div class="flex flex-row gap-2">
-					@button.Button(button.Props{
-						Variant: button.VariantDefault,
-						Attributes: templ.Attributes{
-							"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
-						},
-					}) {
-						Select
-					}
-					<form>
-						<input type="hidden" name="track_id" value={ props.Track.ID.String() }/>
-						@button.Button(button.Props{
-							Variant: button.VariantSecondary,
-							Attributes: templ.Attributes{
-								"data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
-							},
-						}) {
-							Queue
-						}
-					</form>
+				<div class="album-art w-full h-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
+					<svg class="w-8 h-8 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
+						<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+					</svg>
 				</div>
 			}
+		</div>
+		
+		<!-- Track Info Section -->
+		<div class="flex-1 min-w-0 flex flex-col justify-between">
+			<div class="mb-3">
+				<h3 class="music-title truncate">
+					{ props.Track.Name }
+				</h3>
+				<p class="music-artist truncate">
+					{ props.Track.Artists[0].Name }
+				</p>
+				if props.Track.Album.Name != "" {
+					<p class="music-album truncate">
+						{ props.Track.Album.Name }
+					</p>
+				}
+			</div>
+			
+			<!-- Action Buttons -->
+			<div class="flex flex-row gap-2">
+				@button.Button(button.Props{
+					Variant: button.VariantDefault,
+					Size: button.SizeSm,
+					Class: "btn-gradient",
+					Attributes: templ.Attributes{
+						"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
+					},
+				}) {
+					Select
+				}
+				<form class="inline">
+					<input type="hidden" name="track_id" value={ props.Track.ID.String() }/>
+					@button.Button(button.Props{
+						Variant: button.VariantOutline,
+						Size: button.SizeSm,
+						Attributes: templ.Attributes{
+							"data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
+						},
+					}) {
+						Queue
+					}
+				</form>
+			</div>
 		</div>
 	}
 }

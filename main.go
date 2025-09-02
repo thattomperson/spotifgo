@@ -148,7 +148,7 @@ func main() {
 		r.Use(jwtauth.Verifier(tokenAuth))
 		r.Use(utils.AuthMiddleware(tokenAuth, utils.WithRedirectUrl("/auth/login")))
 
-		r.Get("/", templ.Handler(hello(TemplCounterSignals{})).ServeHTTP)
+		r.Get("/", templ.Handler(hello(SpotigoSignals{})).ServeHTTP)
 
 		r.Post("/rpc/get-playing-song", Star(GetPlayingSong))
 		r.Post("/rpc/queue-track", Star(QueueTrack))
@@ -175,7 +175,25 @@ func must[T any](res T, err error) T {
 	return res
 }
 
-func Star[T any](fn func(*datastar.ServerSentEventGenerator, *T, *http.Request)) http.HandlerFunc {
+type DatastarWriter[T any] struct {
+	generator *datastar.ServerSentEventGenerator
+}
+
+func (r *DatastarWriter[T]) Replace(selector string, component templ.Component) {
+	r.generator.PatchElementTempl(component, datastar.WithSelector(selector))
+}
+
+func (r *DatastarWriter[T]) Append(selector string, component templ.Component) {
+	r.generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeAppend())
+}
+
+func (r *DatastarWriter[T]) UpdateSignals(signals *T) {
+	r.generator.MarshalAndPatchSignals(signals)
+}
+
+type StarFunc[T any] func(*DatastarWriter[T], *T, *http.Request)
+
+func Star[T any](fn StarFunc[T]) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		r.ParseForm()
 		var store = new(T)
@@ -184,7 +202,10 @@ func Star[T any](fn func(*datastar.ServerSentEventGenerator, *T, *http.Request))
 			return
 		}
 		sse := datastar.NewSSE(w, r)
-		fn(sse, store, r)
+		response := &DatastarWriter[T]{
+			generator: sse,
+		}
+		fn(response, store, r)
 	})
 }
 

@@ -8,11 +8,10 @@ import (
 	"spotifgo/utils"
 	"sync"
 
-	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
 )
 
-func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
+func GetPlayingSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 	wg := sync.WaitGroup{}
 
@@ -24,10 +23,10 @@ func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounte
 		}
 
 		if song.Item == nil {
-			sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
+			w.Replace("#playing-song", trackcard.TrackCard(trackcard.Props{
 				ID:    "playing-song",
 				Track: spotify.SimpleTrack{Name: "No song playing"},
-			}), datastar.WithSelectorID("playing-song"))
+			}))
 
 			return
 		}
@@ -39,10 +38,10 @@ func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounte
 		track := song.Item.SimpleTrack
 		track.Album = song.Item.Album
 
-		sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
+		w.Replace("#playing-song", trackcard.TrackCard(trackcard.Props{
 			ID:    "playing-song",
 			Track: track,
-		}), datastar.WithSelectorID("playing-song"))
+		}))
 	})
 	wg.Go(func() {
 		songs, err := spotifyClient.PlayerRecentlyPlayed(r.Context())
@@ -51,19 +50,19 @@ func GetPlayingSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounte
 			return
 		}
 
-		sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
+		w.Replace("#recent-songs", trackcard.List(trackcard.ListProps{
 			ID: "recent-songs",
 			Tracks: utils.MapSlice(songs, func(item spotify.RecentlyPlayedItem) spotify.SimpleTrack {
 				return item.Track
 			}),
-		}), datastar.WithSelectorID("recent-songs"))
+		}))
 	})
 
 	wg.Wait()
-	sse.MarshalAndPatchSignals(signals)
+	w.UpdateSignals(signals)
 }
 
-func QueueTrack(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
+func QueueTrack(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
@@ -78,35 +77,35 @@ func QueueTrack(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSig
 		return
 	}
 
-	sse.PatchElementTempl(toast.Toast(toast.Props{
+	w.Append("#toasts", toast.Toast(toast.Props{
 		Title:       "Queued " + track.Name,
 		Description: "You can now enjoy this song in your queue.",
-	}), datastar.WithSelectorID("toasts"), datastar.WithModeAppend())
+	}))
 }
 
-func UpdateSelectedSong(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
+func UpdateSelectedSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(signals.SelectedSong))
 	track := song.SimpleTrack
 	track.Album = song.Album
 
-	sse.PatchElementTempl(trackcard.TrackCard(trackcard.Props{
+	w.Replace("#selected-song", trackcard.TrackCard(trackcard.Props{
 		ID:    "selected-song",
 		Track: track,
-	}), datastar.WithSelectorID("selected-song"))
+	}))
 
 	tracks, _ := spotifyClient.GetRecommendations(r.Context(), spotify.Seeds{
 		Tracks: []spotify.ID{spotify.ID(signals.SelectedSong)},
 	}, nil)
 
-	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
+	w.Replace("#recommended-songs", trackcard.List(trackcard.ListProps{
 		ID:     "recommended-songs",
 		Tracks: tracks.Tracks,
-	}), datastar.WithSelectorID("recommended-songs"))
+	}))
 }
 
-func GetTopSongs(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSignals, r *http.Request) {
+func GetTopSongs(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	songs, err := spotifyClient.CurrentUsersTopTracks(r.Context())
@@ -115,12 +114,12 @@ func GetTopSongs(sse *datastar.ServerSentEventGenerator, signals *TemplCounterSi
 		return
 	}
 
-	sse.PatchElementTempl(trackcard.List(trackcard.ListProps{
+	w.Replace("#top-songs", trackcard.List(trackcard.ListProps{
 		ID: "top-songs",
 		Tracks: utils.MapSlice(songs.Tracks, func(item spotify.FullTrack) spotify.SimpleTrack {
 			track := item.SimpleTrack
 			track.Album = item.Album
 			return track
 		}),
-	}), datastar.WithSelectorID("top-songs"))
+	}))
 }

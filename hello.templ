@@ -2,7 +2,7 @@ package main
 
 import "spotifgo/components/toast"
 
-type TemplCounterSignals struct {
+type SpotigoSignals struct {
 	SelectedSong string `json:"selected_song"`
 }
 
@@ -14,7 +14,7 @@ templ layout() {
 	@toast.Script()
 }
 
-templ hello(signals TemplCounterSignals) {
+templ hello(signals SpotigoSignals) {
 	@layout() {
 		<div
 			id="container"

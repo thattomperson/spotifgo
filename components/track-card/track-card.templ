@@ -28,6 +28,10 @@ templ List(props ListProps) {
 	</div>
 }
 
+templ TrackCardEmpty() {
+	@TrackCard(Props{Track: spotify.SimpleTrack{Name: "No song playing"}})
+}
+
 templ TrackCard(props Props) {
 	@card.Card(card.Props{ID: props.ID, Class: "overflow-hidden w-full flex flex-row"}) {
 		<div class="w-30 h-30">

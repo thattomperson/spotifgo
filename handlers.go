@@ -18,16 +18,13 @@ func GetPlayingSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, 
 	wg.Go(func() {
 		song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
 		if err != nil {
+			w.Generator.Redirect("/auth/login")
 			log.Printf("Failed to get currently playing song: %v", err)
 			return
 		}
 
 		if song.Item == nil {
-			w.Replace("#playing-song", trackcard.TrackCard(trackcard.Props{
-				ID:    "playing-song",
-				Track: spotify.SimpleTrack{Name: "No song playing"},
-			}))
-
+			w.ReplaceInner("#playing-song", trackcard.TrackCardEmpty())
 			return
 		}
 
@@ -38,14 +35,14 @@ func GetPlayingSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, 
 		track := song.Item.SimpleTrack
 		track.Album = song.Item.Album
 
-		w.Replace("#playing-song", trackcard.TrackCard(trackcard.Props{
-			ID:    "playing-song",
+		w.ReplaceInner("#playing-song", trackcard.TrackCard(trackcard.Props{
 			Track: track,
 		}))
 	})
 	wg.Go(func() {
 		songs, err := spotifyClient.PlayerRecentlyPlayed(r.Context())
 		if err != nil {
+			w.Generator.Redirect("/auth/login")
 			log.Printf("Failed to get recently played songs: %v", err)
 			return
 		}
@@ -67,12 +64,14 @@ func QueueTrack(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *h
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
 	if err != nil {
+		w.Generator.Redirect("/auth/login")
 		log.Printf("Failed to get track: %v", err)
 		return
 	}
 
 	err = spotifyClient.QueueSong(r.Context(), track.ID)
 	if err != nil {
+		w.Generator.Redirect("/auth/login")
 		log.Printf("Failed to queue song: %v", err)
 		return
 	}
@@ -90,17 +89,21 @@ func UpdateSelectedSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSigna
 	track := song.SimpleTrack
 	track.Album = song.Album
 
-	w.Replace("#selected-song", trackcard.TrackCard(trackcard.Props{
-		ID:    "selected-song",
+	w.ReplaceInner("#selected-song", trackcard.TrackCard(trackcard.Props{
 		Track: track,
 	}))
 
-	tracks, _ := spotifyClient.GetRecommendations(r.Context(), spotify.Seeds{
+	tracks, err := spotifyClient.GetRecommendations(r.Context(), spotify.Seeds{
 		Tracks: []spotify.ID{spotify.ID(signals.SelectedSong)},
 	}, nil)
 
-	w.Replace("#recommended-songs", trackcard.List(trackcard.ListProps{
-		ID:     "recommended-songs",
+	if err != nil {
+		w.Generator.Redirect("/auth/login")
+		log.Printf("Failed to get recommendations: %v", err)
+		return
+	}
+
+	w.ReplaceInner("#recommended-songs", trackcard.List(trackcard.ListProps{
 		Tracks: tracks.Tracks,
 	}))
 }
@@ -114,8 +117,7 @@ func GetTopSongs(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *
 		return
 	}
 
-	w.Replace("#top-songs", trackcard.List(trackcard.ListProps{
-		ID: "top-songs",
+	w.ReplaceInner("#top-songs", trackcard.List(trackcard.ListProps{
 		Tracks: utils.MapSlice(songs.Tracks, func(item spotify.FullTrack) spotify.SimpleTrack {
 			track := item.SimpleTrack
 			track.Album = item.Album

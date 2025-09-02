@@ -176,19 +176,27 @@ func must[T any](res T, err error) T {
 }
 
 type DatastarWriter[T any] struct {
-	generator *datastar.ServerSentEventGenerator
+	Generator *datastar.ServerSentEventGenerator
+}
+
+func (r *DatastarWriter[T]) PatchElementTempl(component templ.Component, opts ...datastar.PatchElementOption) {
+	r.Generator.PatchElementTempl(component, opts...)
 }
 
 func (r *DatastarWriter[T]) Replace(selector string, component templ.Component) {
-	r.generator.PatchElementTempl(component, datastar.WithSelector(selector))
+	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector))
+}
+
+func (r *DatastarWriter[T]) ReplaceInner(selector string, component templ.Component) {
+	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeInner())
 }
 
 func (r *DatastarWriter[T]) Append(selector string, component templ.Component) {
-	r.generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeAppend())
+	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeAppend())
 }
 
 func (r *DatastarWriter[T]) UpdateSignals(signals *T) {
-	r.generator.MarshalAndPatchSignals(signals)
+	r.Generator.MarshalAndPatchSignals(signals)
 }
 
 type StarFunc[T any] func(*DatastarWriter[T], *T, *http.Request)
@@ -203,7 +211,7 @@ func Star[T any](fn StarFunc[T]) http.HandlerFunc {
 		}
 		sse := datastar.NewSSE(w, r)
 		response := &DatastarWriter[T]{
-			generator: sse,
+			Generator: sse,
 		}
 		fn(response, store, r)
 	})

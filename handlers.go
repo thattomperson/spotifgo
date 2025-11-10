@@ -3,15 +3,16 @@ package main
 import (
 	"log"
 	"net/http"
+	"sync"
+
 	"spotifgo/components/toast"
 	trackcard "spotifgo/components/track-card"
 	"spotifgo/utils"
-	"sync"
 
 	"github.com/zmb3/spotify/v2"
 )
 
-func GetPlayingSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+func GetPlayingSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 	wg := sync.WaitGroup{}
 
@@ -59,7 +60,7 @@ func GetPlayingSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, 
 	w.UpdateSignals(signals)
 }
 
-func QueueTrack(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+func QueueTrack(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
@@ -82,7 +83,7 @@ func QueueTrack(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *h
 	}))
 }
 
-func UpdateSelectedSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+func UpdateSelectedSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(signals.SelectedSong))
@@ -96,19 +97,19 @@ func UpdateSelectedSong(w *DatastarWriter[SpotigoSignals], signals *SpotigoSigna
 	tracks, err := spotifyClient.GetRecommendations(r.Context(), spotify.Seeds{
 		Tracks: []spotify.ID{spotify.ID(signals.SelectedSong)},
 	}, nil)
-
 	if err != nil {
 		w.Generator.Redirect("/auth/login")
 		log.Printf("Failed to get recommendations: %v", err)
 		return
 	}
 
-	w.ReplaceInner("#recommended-songs", trackcard.List(trackcard.ListProps{
+	w.Replace("#recommended-songs", trackcard.List(trackcard.ListProps{
+		ID:     "recommended-songs",
 		Tracks: tracks.Tracks,
 	}))
 }
 
-func GetTopSongs(w *DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+func GetTopSongs(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	songs, err := spotifyClient.CurrentUsersTopTracks(r.Context())

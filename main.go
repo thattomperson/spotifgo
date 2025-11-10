@@ -12,21 +12,23 @@ import (
 	"log"
 	"net/http"
 	"os"
-	"spotifgo/utils"
 	"strings"
 	"time"
+
+	"spotifgo/utils"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/jwtauth/v5"
-	datastar "github.com/starfederation/datastar-go/datastar"
 	"github.com/zmb3/spotify/v2"
 	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
-var tokenAuth *jwtauth.JWTAuth
-var auth *spotifyauth.Authenticator
+var (
+	tokenAuth *jwtauth.JWTAuth
+	auth      *spotifyauth.Authenticator
+)
 
 //go:embed assets/*
 var assets embed.FS
@@ -64,7 +66,6 @@ func init() {
 
 func getSpotifyClient(r *http.Request) *spotify.Client {
 	_, claims, err := jwtauth.FromContext(r.Context())
-
 	if err != nil {
 		return nil
 	}
@@ -150,10 +151,10 @@ func main() {
 
 		r.Get("/", templ.Handler(hello(SpotigoSignals{})).ServeHTTP)
 
-		r.Post("/rpc/get-playing-song", Star(GetPlayingSong))
-		r.Post("/rpc/queue-track", Star(QueueTrack))
-		r.Post("/rpc/update-selected-song", Star(UpdateSelectedSong))
-		r.Post("/rpc/get-top-songs", Star(GetTopSongs))
+		r.Post("/rpc/get-playing-song", utils.Star(GetPlayingSong))
+		r.Post("/rpc/queue-track", utils.Star(QueueTrack))
+		r.Post("/rpc/update-selected-song", utils.Star(UpdateSelectedSong))
+		r.Post("/rpc/get-top-songs", utils.Star(GetTopSongs))
 	})
 
 	FileServer(r, "/assets", http.FS(must(fs.Sub(assets, "assets"))))
@@ -173,48 +174,6 @@ func must[T any](res T, err error) T {
 		panic(err)
 	}
 	return res
-}
-
-type DatastarWriter[T any] struct {
-	Generator *datastar.ServerSentEventGenerator
-}
-
-func (r *DatastarWriter[T]) PatchElementTempl(component templ.Component, opts ...datastar.PatchElementOption) {
-	r.Generator.PatchElementTempl(component, opts...)
-}
-
-func (r *DatastarWriter[T]) Replace(selector string, component templ.Component) {
-	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector))
-}
-
-func (r *DatastarWriter[T]) ReplaceInner(selector string, component templ.Component) {
-	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeInner())
-}
-
-func (r *DatastarWriter[T]) Append(selector string, component templ.Component) {
-	r.Generator.PatchElementTempl(component, datastar.WithSelector(selector), datastar.WithModeAppend())
-}
-
-func (r *DatastarWriter[T]) UpdateSignals(signals *T) {
-	r.Generator.MarshalAndPatchSignals(signals)
-}
-
-type StarFunc[T any] func(*DatastarWriter[T], *T, *http.Request)
-
-func Star[T any](fn StarFunc[T]) http.HandlerFunc {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		r.ParseForm()
-		var store = new(T)
-		if err := datastar.ReadSignals(r, store); err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		sse := datastar.NewSSE(w, r)
-		response := &DatastarWriter[T]{
-			Generator: sse,
-		}
-		fn(response, store, r)
-	})
 }
 
 func FileServer(r chi.Router, path string, root http.FileSystem) {

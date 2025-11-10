@@ -58,19 +58,22 @@
   --card-foreground: oklch(0.95 0.005 270);
   --popover: oklch(0.12 0.008 270);
   --popover-foreground: oklch(0.95 0.005 270);
-  --primary: oklch(0.72 0.17 142); /* Spotify green with better saturation */
+  --primary: oklch(0.72 0.17 142);
+  /* Spotify green with better saturation */
   --primary-foreground: oklch(0.08 0.004 270);
   --secondary: oklch(0.18 0.01 270);
   --secondary-foreground: oklch(0.85 0.008 270);
   --muted: oklch(0.15 0.008 270);
   --muted-foreground: oklch(0.65 0.015 270);
-  --accent: oklch(0.22 0.012 270); /* Subtle purple accent */
+  --accent: oklch(0.22 0.012 270);
+  /* Subtle purple accent */
   --accent-foreground: oklch(0.95 0.005 270);
   --destructive: oklch(0.68 0.18 25);
   --border: oklch(0.25 0.01 270);
   --input: oklch(0.18 0.01 270);
   --ring: oklch(0.72 0.17 142);
-  --radius: 0.75rem; /* Slightly more rounded for modern feel */
+  --radius: 0.75rem;
+  /* Slightly more rounded for modern feel */
   --chart-1: oklch(0.72 0.17 142);
   --chart-2: oklch(0.75 0.15 60);
   --chart-3: oklch(0.7 0.16 300);
@@ -86,7 +89,7 @@
   --sidebar-ring: oklch(0.72 0.17 142);
   --selection: oklch(0.72 0.17 142 / 20%);
   --selection-foreground: oklch(0.95 0.005 270);
-  
+
   /* Custom music app variables */
   --gradient-primary: linear-gradient(135deg, oklch(0.72 0.17 142), oklch(0.65 0.18 160));
   --gradient-card: linear-gradient(145deg, oklch(0.12 0.008 270), oklch(0.15 0.01 280));
@@ -113,29 +116,31 @@
 }
 
 @layer utilities {
+
   /* Modern gradient backgrounds */
   .gradient-primary {
     background: var(--gradient-primary);
   }
-  
+
   .gradient-card {
     background: var(--gradient-card);
   }
-  
+
   /* Glow effects for interactive elements */
   .glow-primary {
     box-shadow: var(--shadow-glow);
   }
-  
+
   /* Column layout improvements */
   .music-column {
-    @apply flex flex-col gap-6 min-w-0; /* min-w-0 prevents flex overflow */
+    @apply flex flex-col gap-6 min-w-0;
+    /* min-w-0 prevents flex overflow */
   }
-  
+
   .music-section {
     @apply space-y-4;
   }
-  
+
   .section-header {
     @apply text-xl font-bold tracking-tight;
     background: var(--gradient-primary);
@@ -145,7 +150,7 @@
     background-size: 200% 200%;
     animation: gradient-shift 8s ease-in-out infinite;
   }
-  
+
   /* Enhanced cards with subtle gradients */
   .track-card-enhanced {
     @apply relative overflow-hidden;
@@ -153,108 +158,123 @@
     border: 1px solid oklch(0.25 0.01 270);
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   }
-  
+
   .track-card-enhanced:hover {
     transform: translateY(-2px);
     box-shadow: var(--shadow-glow);
     border-color: oklch(0.72 0.17 142 / 50%);
   }
-  
+
   /* Album art styling */
   .album-art {
     @apply rounded-lg overflow-hidden;
     aspect-ratio: 1;
   }
-  
+
   /* Modern button variants */
   .btn-gradient {
     background: var(--gradient-primary);
     @apply text-black font-medium;
     transition: all 0.3s ease;
   }
-  
+
   .btn-gradient:hover {
     transform: translateY(-1px);
     box-shadow: 0 10px 25px oklch(0.72 0.17 142 / 30%);
   }
-  
+
   /* Typography improvements */
   .music-title {
     @apply text-lg font-semibold leading-tight text-foreground;
   }
-  
+
   .music-artist {
     @apply text-sm text-muted-foreground;
   }
-  
+
   .music-album {
     @apply text-xs text-muted-foreground/70;
   }
-  
+
   /* Animations */
   @keyframes gradient-shift {
-    0%, 100% { background-position: 0% 50%; }
-    50% { background-position: 100% 50%; }
+
+    0%,
+    100% {
+      background-position: 0% 50%;
+    }
+
+    50% {
+      background-position: 100% 50%;
+    }
   }
-  
+
   /* Glass morphism effect for special elements */
   .glass {
     background: oklch(0.15 0.008 270 / 80%);
     backdrop-filter: blur(10px);
     border: 1px solid oklch(0.3 0.01 270 / 30%);
   }
-  
+
   /* Responsive design improvements */
   @media (max-width: 1024px) {
     .music-column {
       @apply gap-4;
     }
-    
+
     .section-header {
       @apply text-lg;
     }
   }
-  
+
   @media (max-width: 768px) {
     .track-card-enhanced {
       @apply p-3;
     }
-    
+
     .album-art {
       @apply w-16 h-16;
     }
-    
+
     .section-header {
       @apply text-base;
     }
-    
+
     .music-title {
       @apply text-base;
     }
-    
+
     .glass {
       @apply p-4;
     }
+
+    .music-column:not(.current-tab) {
+      display: none !important;
+    }
   }
-  
+
   /* Smooth scrolling for better UX */
   html {
     scroll-behavior: smooth;
   }
-  
+
   /* Loading states */
   .loading-shimmer {
-    background: linear-gradient(90deg, 
-      oklch(0.15 0.008 270) 25%, 
-      oklch(0.2 0.01 270) 50%, 
-      oklch(0.15 0.008 270) 75%
-    );
+    background: linear-gradient(90deg,
+        oklch(0.15 0.008 270) 25%,
+        oklch(0.2 0.01 270) 50%,
+        oklch(0.15 0.008 270) 75%);
     background-size: 200% 100%;
     animation: shimmer 1.5s infinite;
   }
-  
+
   @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+
+    100% {
+      background-position: 200% 0;
+    }
   }
 }

@@ -2,9 +2,10 @@ package trackcard
 
 import (
 	spotify "github.com/zmb3/spotify/v2"
+	"net/url"
 	"spotifgo/components/button"
 	"spotifgo/components/card"
-	"strconv"
+	"spotifgo/utils"
 )
 
 type Props struct {
@@ -19,9 +20,8 @@ type ListProps struct {
 
 templ List(props ListProps) {
 	<div id={ props.ID } class="flex flex-col gap-3">
-		for i, track := range props.Tracks {
+		for _, track := range props.Tracks {
 			@TrackCard(Props{
-				ID:    props.ID + "-" + strconv.Itoa(i),
 				Track: track,
 			})
 		}
@@ -32,7 +32,7 @@ templ TrackCardEmpty() {
 	@card.Card(card.Props{Class: "track-card-enhanced w-full flex flex-col items-center justify-center p-8 text-center"}) {
 		<div class="w-16 h-16 mb-4 bg-gradient-to-br from-muted to-muted/50 rounded-full flex items-center justify-center">
 			<svg class="w-8 h-8 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
-				<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+				<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path>
 			</svg>
 		</div>
 		<h3 class="music-title mb-1">No song playing</h3>
@@ -45,20 +45,19 @@ templ TrackCard(props Props) {
 		<!-- Album Art Section -->
 		<div class="w-20 h-20 mr-4 flex-shrink-0">
 			if (len(props.Track.Album.Images) > 0) {
-				<img 
-					src={ props.Track.Album.Images[0].URL } 
+				<img
+					src={ props.Track.Album.Images[0].URL }
 					alt={ props.Track.Album.Name }
 					class="album-art w-full h-full object-cover"
 				/>
 			} else {
 				<div class="album-art w-full h-full bg-gradient-to-br from-muted to-muted/50 flex items-center justify-center">
 					<svg class="w-8 h-8 text-muted-foreground" fill="currentColor" viewBox="0 0 24 24">
-						<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/>
+						<path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"></path>
 					</svg>
 				</div>
 			}
 		</div>
-		
 		<!-- Track Info Section -->
 		<div class="flex-1 min-w-0 flex flex-col justify-between">
 			<div class="mb-3">
@@ -74,31 +73,29 @@ templ TrackCard(props Props) {
 					</p>
 				}
 			</div>
-			
 			<!-- Action Buttons -->
 			<div class="flex flex-row gap-2">
 				@button.Button(button.Props{
 					Variant: button.VariantDefault,
-					Size: button.SizeSm,
-					Class: "btn-gradient",
+					Size:    button.SizeSm,
+					Class:   "btn-gradient",
 					Attributes: templ.Attributes{
 						"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
 					},
 				}) {
 					Select
 				}
-				<form class="inline">
-					<input type="hidden" name="track_id" value={ props.Track.ID.String() }/>
-					@button.Button(button.Props{
-						Variant: button.VariantOutline,
-						Size: button.SizeSm,
-						Attributes: templ.Attributes{
-							"data-on-click": "@post('/rpc/queue-track', {contentType: 'form'})",
-						},
-					}) {
-						Queue
-					}
-				</form>
+				@button.Button(button.Props{
+					Variant: button.VariantOutline,
+					Size:    button.SizeSm,
+					Attributes: templ.Attributes{
+						"data-on-click": utils.Rpc("queue-track", url.Values{
+							"track_id": []string{props.Track.ID.String()},
+						}),
+					},
+				}) {
+					Queue
+				}
 			</div>
 		</div>
 	}

@@ -44,7 +44,7 @@ func init() {
 
 	host := os.Getenv("HOST")
 	if host == "" {
-		host = "http://localhost:3000"
+		host = "http://localhost:" + os.Getenv("PORT")
 	}
 	redirectURL := fmt.Sprintf("%s/auth/callback", host)
 	// the redirect URL must be an exact match of a URL you've registered for your application
@@ -155,6 +155,7 @@ func main() {
 		r.Post("/rpc/queue-track", utils.Star(QueueTrack))
 		r.Post("/rpc/update-selected-song", utils.Star(UpdateSelectedSong))
 		r.Post("/rpc/get-top-songs", utils.Star(GetTopSongs))
+		r.Post("/rpc/get-detailed-track-info", utils.Star(GetDetailedTrackInfo))
 	})
 
 	FileServer(r, "/assets", http.FS(must(fs.Sub(assets, "assets"))))

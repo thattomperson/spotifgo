@@ -1,10 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 	"sync"
+	"time"
 
+	"spotifgo/components/dialog"
 	"spotifgo/components/toast"
 	trackcard "spotifgo/components/track-card"
 	"spotifgo/utils"
@@ -125,4 +128,98 @@ func GetTopSongs(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignal
 			return track
 		}),
 	}))
+}
+
+func GetDetailedTrackInfo(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := getSpotifyClient(r)
+	trackID := r.FormValue("track_id")
+
+	if trackID == "" {
+		log.Printf("No track ID provided")
+		return
+	}
+
+	wg := sync.WaitGroup{}
+	var track *spotify.FullTrack
+	var artist *spotify.FullArtist
+
+	// Get detailed track info
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		var err error
+		track, err = spotifyClient.GetTrack(r.Context(), spotify.ID(trackID))
+		if err != nil {
+			log.Printf("Failed to get track details: %v", err)
+		}
+	}()
+
+	wg.Wait()
+
+	if track == nil {
+		log.Printf("Failed to get track information")
+		return
+	}
+
+	// Get artist details for genres (if not already available from track)
+	if len(track.Artists) > 0 {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			var err error
+			artist, err = spotifyClient.GetArtist(r.Context(), track.Artists[0].ID)
+			if err != nil {
+				log.Printf("Failed to get artist details: %v", err)
+			}
+		}()
+		wg.Wait()
+	}
+
+	// Format duration
+	duration := formatDuration(int(track.Duration))
+
+	// Get album image URL
+	var albumImage string
+	if len(track.Album.Images) > 0 {
+		albumImage = track.Album.Images[0].URL
+	}
+
+	// Get genres from artist
+	var genres []string
+	if artist != nil {
+		genres = artist.Genres
+	}
+
+	// Format release date
+	var releaseDate string
+	if track.Album.ReleaseDate != "" {
+		releaseDate = track.Album.ReleaseDate
+	}
+
+	// Create dialog props
+	dialogProps := dialog.DetailedTrackProps{
+		TrackID:     track.ID.String(),
+		TrackName:   track.Name,
+		ArtistName:  track.Artists[0].Name,
+		AlbumName:   track.Album.Name,
+		AlbumImage:  albumImage,
+		Duration:    duration,
+		Popularity:  int(track.Popularity),
+		ReleaseDate: releaseDate,
+		Genres:      genres,
+	}
+
+	signals.DialogOpen = true
+	signals.DialogType = "track"
+	signals.DialogItemID = trackID
+	w.UpdateSignals(signals)
+	// Update the dialog content
+	w.ReplaceInner("#dialog-content", dialog.DetailedTrackInfo(dialogProps))
+}
+
+func formatDuration(duration int) string {
+	d := time.Duration(duration) * time.Millisecond
+	minutes := int(d.Minutes())
+	seconds := int(d.Seconds()) % 60
+	return fmt.Sprintf("%d:%02d", minutes, seconds)
 }

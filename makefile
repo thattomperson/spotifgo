@@ -23,6 +23,4 @@ assets/css/output.css: assets/css/input.css $(TAILWIND)
 
 # Start development server with all watchers
 dev:
-	make -j3 watch-css watch-templ watch-server
-
-
+	PORT=9010 SPOTIFY_CLIENT_ID="op://Private/Spotigo/Client ID" SPOTIFY_CLIENT_SECRET="op://Private/Spotigo/Client Secret" op run -- make -j3 watch-css watch-templ watch-server

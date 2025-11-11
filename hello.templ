@@ -4,6 +4,9 @@ import "spotifgo/components/toast"
 
 type SpotigoSignals struct {
 	SelectedSong string `json:"selected_song"`
+	DialogOpen   bool   `json:"dialog_open"`
+	DialogType   string `json:"dialog_type"`
+	DialogItemID string `json:"dialog_item_id"`
 }
 
 templ layout() {
@@ -81,5 +84,7 @@ templ hello(signals SpotigoSignals) {
 			</div>
 			<div id="debug"></div>
 		</div>
+		<!-- Dialog Container -->
+		<div id="dialog-content" data-show="$dialog_open"></div>
 	}
 }

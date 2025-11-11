@@ -41,7 +41,9 @@ templ TrackCardEmpty() {
 }
 
 templ TrackCard(props Props) {
-	@card.Card(card.Props{ID: props.ID, Class: "track-card-enhanced w-full flex flex-row p-4"}) {
+	@card.Card(card.Props{ID: props.ID, Class: "track-card-enhanced w-full flex flex-row p-4", Attributes: templ.Attributes{
+		"data-track-id": props.Track.ID.String(),
+	}}) {
 		<!-- Album Art Section -->
 		<div class="w-20 h-20 mr-4 flex-shrink-0">
 			if (len(props.Track.Album.Images) > 0) {
@@ -62,14 +64,37 @@ templ TrackCard(props Props) {
 		<div class="flex-1 min-w-0 flex flex-col justify-between">
 			<div class="mb-3">
 				<h3 class="music-title truncate">
-					{ props.Track.Name }
+					<button
+						class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
+						data-on-click={ utils.Rpc("get-detailed-track-info", url.Values{
+								"track_id": []string{props.Track.ID.String()},
+							}) }
+					>
+						{ props.Track.Name }
+					</button>
 				</h3>
 				<p class="music-artist truncate">
-					{ props.Track.Artists[0].Name }
+					<button
+						class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
+						data-on-click={ "$dialog_open = true; $dialog_type = 'artist'; $dialog_item_id = '" + props.Track.Artists[0].ID.String() + "'; " +
+							utils.Rpc("get-detailed-track-info", url.Values{
+								"track_id": []string{props.Track.ID.String()},
+							}) }
+					>
+						{ props.Track.Artists[0].Name }
+					</button>
 				</p>
 				if props.Track.Album.Name != "" {
 					<p class="music-album truncate">
-						{ props.Track.Album.Name }
+						<button
+							class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
+							data-on-click={ "$dialog_open = true; $dialog_type = 'album'; $dialog_item_id = '" + props.Track.Album.ID.String() + "'; " +
+								utils.Rpc("get-detailed-track-info", url.Values{
+									"track_id": []string{props.Track.ID.String()},
+								}) }
+						>
+							{ props.Track.Album.Name }
+						</button>
 					</p>
 				}
 			</div>

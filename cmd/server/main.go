@@ -1,5 +1,5 @@
 //go:generate go tool templ generate
-//go:generate go tool gotailwind -i ./assets/css/input.css -o ./assets/css/output.css
+//go:generate go tool gotailwind -i ../../assets/css/input.css -o ../../assets/css/output.css
 
 package main
 

@@ -8,7 +8,6 @@ COPY . .
 RUN go generate ./...
 RUN go build -v -o /run-app cmd/server/main.go
 
-
 FROM debian:bookworm
 
 WORKDIR /usr/src/app

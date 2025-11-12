@@ -6,7 +6,7 @@ COPY go.mod go.sum ./
 RUN go mod download && go mod verify
 COPY . .
 RUN go generate ./...
-RUN go build -v -o /run-app .
+RUN go build -v -o /run-app cmd/server/main.go
 
 
 FROM debian:bookworm

@@ -4,30 +4,25 @@
 package main
 
 import (
-	"crypto/rand"
 	"embed"
-	"encoding/base64"
 	"fmt"
 	"io/fs"
 	"log"
 	"net/http"
 	"os"
 	"strings"
-	"time"
 
+	"spotifgo/internal/auth"
+	"spotifgo/internal/handler"
 	"spotifgo/utils"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/middleware"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/jwtauth/v5"
-	"github.com/zmb3/spotify/v2"
-	spotifyauth "github.com/zmb3/spotify/v2/auth"
 )
 
 var (
-	tokenAuth *jwtauth.JWTAuth
-	auth      *spotifyauth.Authenticator
+	authService *auth.Auth
 )
 
 //go:embed assets/*
@@ -40,7 +35,7 @@ func init() {
 		tokenSecret = "secret"
 	}
 
-	tokenAuth = jwtauth.New("HS256", []byte(tokenSecret), nil)
+	tokenAuth := auth.NewTokenAuth(tokenSecret)
 
 	host := os.Getenv("HOST")
 	if host == "" {
@@ -49,33 +44,9 @@ func init() {
 	redirectURL := fmt.Sprintf("%s/auth/callback", host)
 	// the redirect URL must be an exact match of a URL you've registered for your application
 	// scopes determine which permissions the user is prompted to authorize
-	auth = spotifyauth.New(
-		spotifyauth.WithRedirectURL(redirectURL),
-		spotifyauth.WithScopes(
-			spotifyauth.ScopeUserReadPrivate,
-			spotifyauth.ScopeUserReadCurrentlyPlaying,
-			spotifyauth.ScopeUserReadPlaybackState,
-			spotifyauth.ScopeUserModifyPlaybackState,
-			spotifyauth.ScopeUserReadRecentlyPlayed,
-			spotifyauth.ScopeUserTopRead,
-		),
-		spotifyauth.WithClientID(os.Getenv("SPOTIFY_CLIENT_ID")),
-		spotifyauth.WithClientSecret(os.Getenv("SPOTIFY_CLIENT_SECRET")),
-	)
-}
+	authenticator := auth.NewAuthenticator(redirectURL, os.Getenv("SPOTIFY_CLIENT_ID"), os.Getenv("SPOTIFY_CLIENT_SECRET"))
 
-func getSpotifyClient(r *http.Request) *spotify.Client {
-	_, claims, err := jwtauth.FromContext(r.Context())
-	if err != nil {
-		return nil
-	}
-
-	spotifyToken, ok := claims["token"].(map[string]interface{})
-	if !ok {
-		return nil
-	}
-	token := utils.OAuthTokenFromInterface(spotifyToken)
-	return spotify.New(auth.Client(r.Context(), token))
+	authService = auth.NewAuth(authenticator, tokenAuth)
 }
 
 func main() {
@@ -84,78 +55,26 @@ func main() {
 	r.Use(middleware.Recoverer)
 
 	r.Group(func(r chi.Router) {
-		r.Get("/auth/login", func(w http.ResponseWriter, r *http.Request) {
-			// get the user to this URL - how you do that is up to you
-			// you should specify a unique state string to identify the session
-
-			b := make([]byte, 32)
-			if _, err := rand.Read(b); err != nil {
-				http.Error(w, "Failed to generate state", http.StatusInternalServerError)
-				return
-			}
-			state := base64.URLEncoding.EncodeToString(b)
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "state",
-				Value:    state,
-				Path:     "/",
-				HttpOnly: true,
-				MaxAge:   int((time.Minute * 5) / time.Second),
-			})
-
-			url := auth.AuthURL(state)
-
-			http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-		})
-
-		r.Get("/auth/callback", func(w http.ResponseWriter, r *http.Request) {
-			stateCookie, err := r.Cookie("state")
-			if err != nil {
-				log.Println(err)
-				http.Error(w, "Failed to get state cookie", http.StatusInternalServerError)
-				return
-			}
-			if stateCookie == nil {
-				http.Error(w, "Failed to get state cookie", http.StatusInternalServerError)
-				return
-			}
-			state := stateCookie.Value
-			http.SetCookie(w, &http.Cookie{
-				Name:     "state",
-				Value:    "",
-				Path:     "/",
-				HttpOnly: true,
-				MaxAge:   -1,
-			})
-
-			token, err := auth.Token(r.Context(), state, r)
-			if err != nil {
-				log.Println(err)
-				http.Error(w, "Couldn't get token", http.StatusNotFound)
-				return
-			}
-			_, tokenString, _ := tokenAuth.Encode(map[string]interface{}{"token": token})
-			http.SetCookie(w, &http.Cookie{
-				Name:     "jwt",
-				Value:    tokenString,
-				Path:     "/",
-				HttpOnly: true,
-			})
-			http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		})
+		r.Get("/auth/login", authService.LoginHandler)
+		r.Get("/auth/callback", authService.CallbackHandler)
 	})
 
 	r.Group(func(r chi.Router) {
-		r.Use(jwtauth.Verifier(tokenAuth))
-		r.Use(utils.AuthMiddleware(tokenAuth, utils.WithRedirectUrl("/auth/login")))
+		r.Use(authService.VerifierMiddleware())
+		r.Use(authService.AuthMiddleware(auth.WithRedirectUrl("/auth/login")))
 
-		r.Get("/", templ.Handler(hello(SpotigoSignals{})).ServeHTTP)
+		r.Get("/", templ.Handler(hello(handler.SpotigoSignals{})).ServeHTTP)
 
-		r.Post("/rpc/get-playing-song", utils.Star(GetPlayingSong))
-		r.Post("/rpc/queue-track", utils.Star(QueueTrack))
-		r.Post("/rpc/update-selected-song", utils.Star(UpdateSelectedSong))
-		r.Post("/rpc/get-top-songs", utils.Star(GetTopSongs))
-		r.Post("/rpc/get-detailed-track-info", utils.Star(GetDetailedTrackInfo))
+		rpcHandlers := handler.NewRpcHandlers(authService)
+
+		r.Post("/rpc/get-playing-song", utils.Star(rpcHandlers.GetPlayingSong))
+		r.Post("/rpc/queue-track", utils.Star(rpcHandlers.QueueTrack))
+		r.Post("/rpc/add-to-playlist", utils.Star(rpcHandlers.AddToPlaylist))
+		r.Post("/rpc/update-selected-song", utils.Star(rpcHandlers.UpdateSelectedSong))
+		r.Post("/rpc/get-top-songs", utils.Star(rpcHandlers.GetTopSongs))
+		r.Post("/rpc/get-detailed-track-info", utils.Star(rpcHandlers.GetDetailedTrackInfo))
+
+		r.Get("/auth/logout", authService.LogoutHandler)
 	})
 
 	FileServer(r, "/assets", http.FS(must(fs.Sub(assets, "assets"))))

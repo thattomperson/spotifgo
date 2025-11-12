@@ -1,27 +1,48 @@
-package main
+package handler
 
 import (
 	"fmt"
 	"log"
 	"net/http"
+	"strings"
 	"sync"
 	"time"
 
 	"spotifgo/components/dialog"
 	"spotifgo/components/toast"
 	trackcard "spotifgo/components/track-card"
+	"spotifgo/internal/auth"
 	"spotifgo/utils"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/zmb3/spotify/v2"
 )
 
-func GetPlayingSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
-	spotifyClient := getSpotifyClient(r)
+type SpotigoSignals struct {
+	SelectedSong string `json:"selected_song"`
+	DialogOpen   bool   `json:"dialog_open"`
+	DialogType   string `json:"dialog_type"`
+	DialogItemID string `json:"dialog_item_id"`
+}
+
+type RpcHandlers struct {
+	authService *auth.Auth
+}
+
+func NewRpcHandlers(authService *auth.Auth) *RpcHandlers {
+	return &RpcHandlers{
+		authService: authService,
+	}
+}
+
+func (h *RpcHandlers) GetPlayingSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := h.authService.GetSpotifyClient(r)
 	wg := sync.WaitGroup{}
 
 	wg.Go(func() {
 		song, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
 		if err != nil {
+			spew.Dump(err)
 			w.Generator.Redirect("/auth/login")
 			log.Printf("Failed to get currently playing song: %v", err)
 			return
@@ -63,7 +84,7 @@ func GetPlayingSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSig
 	w.UpdateSignals(signals)
 }
 
-func QueueTrack(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+func (h *RpcHandlers) QueueTrack(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
 	spotifyClient := getSpotifyClient(r)
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
@@ -86,8 +107,96 @@ func QueueTrack(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals
 	}))
 }
 
-func UpdateSelectedSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
-	spotifyClient := getSpotifyClient(r)
+func (h *RpcHandlers) AddToPlaylist(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := h.authService.GetSpotifyClient(r)
+
+	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
+	if err != nil {
+		w.Generator.Redirect("/auth/login")
+		log.Printf("Failed to get track: %v", err)
+		return
+	}
+
+	// Get current playback context to find the playlist being played
+	currentlyPlaying, err := spotifyClient.PlayerCurrentlyPlaying(r.Context())
+	if err != nil {
+		w.Generator.Redirect("/auth/login")
+		log.Printf("Failed to get currently playing: %v", err)
+		return
+	}
+
+	// Check if the user is currently playing from a playlist
+	if currentlyPlaying == nil || currentlyPlaying.PlaybackContext.Type != "playlist" {
+		// Fallback to first user playlist if not playing from a playlist
+		playlists, err := spotifyClient.CurrentUsersPlaylists(r.Context())
+		if err != nil {
+			w.Generator.Redirect("/auth/login")
+			log.Printf("Failed to get playlists: %v", err)
+			return
+		}
+
+		if len(playlists.Playlists) == 0 {
+			w.Append("#toasts", toast.Toast(toast.Props{
+				Title:       "No playlists found",
+				Description: "Please create a playlist first to add songs to it.",
+			}))
+			return
+		}
+
+		// Add to the first playlist as fallback
+		playlist := playlists.Playlists[0]
+		_, err = spotifyClient.AddTracksToPlaylist(r.Context(), playlist.ID, track.ID)
+		if err != nil {
+			w.Generator.Redirect("/auth/login")
+			log.Printf("Failed to add track to playlist: %v", err)
+			return
+		}
+
+		w.Append("#toasts", toast.Toast(toast.Props{
+			Title:       "Added " + track.Name + " to " + playlist.Name,
+			Description: "The song has been added to your playlist.",
+		}))
+		return
+	}
+
+	// Extract playlist ID from the URI (format: spotify:playlist:PLAYLIST_ID)
+	playlistURI := string(currentlyPlaying.PlaybackContext.URI)
+	// Split by ":" to get ["spotify", "playlist", "PLAYLIST_ID"]
+	parts := strings.Split(playlistURI, ":")
+	if len(parts) != 3 || parts[0] != "spotify" || parts[1] != "playlist" {
+		w.Append("#toasts", toast.Toast(toast.Props{
+			Title:       "Invalid playlist context",
+			Description: "Unable to determine current playlist.",
+		}))
+		return
+	}
+
+	playlistID := spotify.ID(parts[2])
+
+	// Get playlist details for the toast message
+	playlist, err := spotifyClient.GetPlaylist(r.Context(), playlistID)
+	if err != nil {
+		w.Generator.Redirect("/auth/login")
+		log.Printf("Failed to get playlist details: %v", err)
+		return
+	}
+
+	// Add track to the current playlist
+	_, err = spotifyClient.AddTracksToPlaylist(r.Context(), playlistID, track.ID)
+	if err != nil {
+		w.Generator.Redirect("/auth/login")
+		log.Printf("Failed to add track to playlist: %v", err)
+		return
+	}
+
+	w.Append("#toasts", toast.Toast(toast.Props{
+		Title:       "Added " + track.Name + " to " + playlist.Name,
+		Description: "The song has been added to your current playlist.",
+	}))
+}
+
+func (h *RpcHandlers) UpdateSelectedSong(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := h.authService.GetSpotifyClient(r)
 
 	song, _ := spotifyClient.GetTrack(r.Context(), spotify.ID(signals.SelectedSong))
 	track := song.SimpleTrack
@@ -112,8 +221,8 @@ func UpdateSelectedSong(w *utils.DatastarWriter[SpotigoSignals], signals *Spotig
 	}))
 }
 
-func GetTopSongs(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
-	spotifyClient := getSpotifyClient(r)
+func (h *RpcHandlers) GetTopSongs(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := h.authService.GetSpotifyClient(r)
 
 	songs, err := spotifyClient.CurrentUsersTopTracks(r.Context())
 	if err != nil {
@@ -130,8 +239,8 @@ func GetTopSongs(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignal
 	}))
 }
 
-func GetDetailedTrackInfo(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
-	spotifyClient := getSpotifyClient(r)
+func (h *RpcHandlers) GetDetailedTrackInfo(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
+	spotifyClient := h.authService.GetSpotifyClient(r)
 	trackID := r.FormValue("track_id")
 
 	if trackID == "" {
@@ -140,24 +249,13 @@ func GetDetailedTrackInfo(w *utils.DatastarWriter[SpotigoSignals], signals *Spot
 	}
 
 	wg := sync.WaitGroup{}
-	var track *spotify.FullTrack
+
 	var artist *spotify.FullArtist
 
 	// Get detailed track info
-	wg.Add(1)
-	go func() {
-		defer wg.Done()
-		var err error
-		track, err = spotifyClient.GetTrack(r.Context(), spotify.ID(trackID))
-		if err != nil {
-			log.Printf("Failed to get track details: %v", err)
-		}
-	}()
-
-	wg.Wait()
-
-	if track == nil {
-		log.Printf("Failed to get track information")
+	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(trackID))
+	if err != nil || track == nil {
+		log.Printf("Failed to get track details: %v", err)
 		return
 	}
 

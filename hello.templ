@@ -1,13 +1,9 @@
 package main
 
-import "spotifgo/components/toast"
-
-type SpotigoSignals struct {
-	SelectedSong string `json:"selected_song"`
-	DialogOpen   bool   `json:"dialog_open"`
-	DialogType   string `json:"dialog_type"`
-	DialogItemID string `json:"dialog_item_id"`
-}
+import (
+	"spotifgo/components/toast"
+	"spotifgo/internal/handler"
+)
 
 templ layout() {
 	<link rel="stylesheet" href="/assets/css/output.css"/>
@@ -18,7 +14,7 @@ templ layout() {
 	@toast.Script()
 }
 
-templ hello(signals SpotigoSignals) {
+templ hello(signals handler.SpotigoSignals) {
 	@layout() {
 		<!-- Modern header with gradient background -->
 		<header class="glass sticky top-0 z-50 p-6 mb-8">

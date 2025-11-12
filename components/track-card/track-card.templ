@@ -5,6 +5,7 @@ import (
 	"net/url"
 	"spotifgo/components/button"
 	"spotifgo/components/card"
+	"spotifgo/components/icon"
 	"spotifgo/utils"
 )
 
@@ -120,6 +121,17 @@ templ TrackCard(props Props) {
 					},
 				}) {
 					Queue
+				}
+				@button.Button(button.Props{
+					Variant: button.VariantOutline,
+					Size:    button.SizeSm,
+					Attributes: templ.Attributes{
+						"data-on-click": utils.Rpc("add-to-playlist", url.Values{
+							"track_id": []string{props.Track.ID.String()},
+						}),
+					},
+				}) {
+					@icon.ListPlus(icon.Props{Size: 16})
 				}
 			</div>
 		</div>

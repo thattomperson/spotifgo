@@ -1,21 +1,12 @@
-package main
+package pages
 
 import (
-	"spotifgo/components/toast"
 	"spotifgo/internal/handler"
+	"spotifgo/internal/ui/layout"
 )
 
-templ layout() {
-	<link rel="stylesheet" href="/assets/css/output.css"/>
-	{ children... }
-	<div id="toasts"></div>
-	// <script type="module" src="https://cdn.jsdelivr.net/gh/solidstarjs/solidstar@0.1.2/bundles/solidstar.js"></script>
-	<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
-	@toast.Script()
-}
-
-templ hello(signals handler.SpotigoSignals) {
-	@layout() {
+templ HomePage(signals handler.SpotigoSignals) {
+	@layout.Layout() {
 		<!-- Modern header with gradient background -->
 		<header class="glass sticky top-0 z-50 p-6 mb-8">
 			<div class="max-w-7xl mx-auto">
@@ -34,11 +25,11 @@ templ hello(signals handler.SpotigoSignals) {
 			data-on-load="@post('/rpc/get-top-songs', {requestCancellation: 'disabled'})"
 			class="max-w-7xl mx-auto px-6 pb-12"
 		>
-			<div>
-				<button data-on-click="$current_tab = 'currently_playing'">Currently Playing</button>
-				<button data-on-click="$current_tab = 'recommended'">Recommended</button>
-				<button data-on-click="$current_tab = 'you'">You</button>
-			</div>
+			// <div>
+			// 	<button data-on-click="$current_tab = 'currently_playing'">Currently Playing</button>
+			// 	<button data-on-click="$current_tab = 'recommended'">Recommended</button>
+			// 	<button data-on-click="$current_tab = 'you'">You</button>
+			// </div>
 			<!-- Three-column responsive grid -->
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 				// <!-- Column 1: Now Playing & Recently Played -->

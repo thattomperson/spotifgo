@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"spotifgo/components/dialog"
-	"spotifgo/components/toast"
-	trackcard "spotifgo/components/track-card"
 	"spotifgo/internal/auth"
-	"spotifgo/utils"
+	"spotifgo/internal/ui/components/dialog"
+	"spotifgo/internal/ui/components/toast"
+	trackcard "spotifgo/internal/ui/components/track-card"
+	"spotifgo/internal/utils"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zmb3/spotify/v2"
@@ -85,7 +85,7 @@ func (h *RpcHandlers) GetPlayingSong(w *utils.DatastarWriter[SpotigoSignals], si
 }
 
 func (h *RpcHandlers) QueueTrack(w *utils.DatastarWriter[SpotigoSignals], signals *SpotigoSignals, r *http.Request) {
-	spotifyClient := getSpotifyClient(r)
+	spotifyClient := h.authService.GetSpotifyClient(r)
 
 	track, err := spotifyClient.GetTrack(r.Context(), spotify.ID(r.FormValue("track_id")))
 	if err != nil {

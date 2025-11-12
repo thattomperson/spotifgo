@@ -5,7 +5,7 @@ watch-templ:
 # Run air for Go hot reload
 watch-server:
 	go tool air \
-	--build.cmd "go build -o tmp/bin/main ." \
+	--build.cmd "go build -o tmp/bin/main cmd/server/main.go" \
 	--build.bin "tmp/bin/main" \
 	--build.delay "100" \
 	--build.exclude_dir "node_modules" \

@@ -1,6 +1,6 @@
 {
-  "componentsDir": "components",
-  "utilsDir": "utils",
+  "componentsDir": "internal/ui/components",
+  "utilsDir": "internal/utils",
   "moduleName": "spotifgo",
   "jsDir": "assets/js",
   "jsPublicPath": "/assets/js"

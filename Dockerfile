@@ -11,6 +11,9 @@ RUN go build -v -o /run-app .
 
 FROM debian:bookworm
 
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app/assets /usr/src/app/assets
 COPY --from=builder /run-app /usr/local/bin/
 
 RUN apt-get update && apt-get install -y \

@@ -3,10 +3,11 @@ package trackcard
 import (
 	spotify "github.com/zmb3/spotify/v2"
 	"net/url"
-	"spotifgo/components/button"
-	"spotifgo/components/card"
-	"spotifgo/components/icon"
-	"spotifgo/utils"
+	"spotifgo/internal/ui/components/button"
+	"spotifgo/internal/ui/components/card"
+	"spotifgo/internal/ui/components/icon"
+	"spotifgo/internal/ui/components/tooltip"
+	"spotifgo/internal/utils"
 )
 
 type Props struct {
@@ -101,39 +102,64 @@ templ TrackCard(props Props) {
 			</div>
 			<!-- Action Buttons -->
 			<div class="flex flex-row gap-2">
-				@button.Button(button.Props{
+				@Button(ButtonProps{
+					Tooltip: "Select track",
+					OnClick: "$selected_song = '" + props.Track.ID.String() + "'",
 					Variant: button.VariantDefault,
-					Size:    button.SizeSm,
-					Class:   "btn-gradient",
-					Attributes: templ.Attributes{
-						"data-on-click": "$selected_song = '" + props.Track.ID.String() + "'",
-					},
 				}) {
-					Select
+					@icon.Search(icon.Props{Size: 16})
 				}
-				@button.Button(button.Props{
-					Variant: button.VariantOutline,
-					Size:    button.SizeSm,
-					Attributes: templ.Attributes{
-						"data-on-click": utils.Rpc("queue-track", url.Values{
-							"track_id": []string{props.Track.ID.String()},
-						}),
-					},
+				@Button(ButtonProps{
+					Tooltip: "Queue track",
+					OnClick: utils.Rpc("queue-track", url.Values{
+						"track_id": []string{props.Track.ID.String()},
+					}),
 				}) {
-					Queue
+					@icon.ListStart(icon.Props{Size: 16})
 				}
-				@button.Button(button.Props{
-					Variant: button.VariantOutline,
-					Size:    button.SizeSm,
-					Attributes: templ.Attributes{
-						"data-on-click": utils.Rpc("add-to-playlist", url.Values{
-							"track_id": []string{props.Track.ID.String()},
-						}),
-					},
+				@Button(ButtonProps{
+					Tooltip: "Add to playlist",
+					OnClick: utils.Rpc("add-to-playlist", url.Values{
+						"track_id": []string{props.Track.ID.String()},
+					}),
 				}) {
 					@icon.ListPlus(icon.Props{Size: 16})
 				}
 			</div>
 		</div>
+	}
+}
+
+type ButtonProps struct {
+	Variant button.Variant
+	OnClick string
+	Tooltip string
+}
+
+templ Button(props ButtonProps) {
+	{{ id := utils.RandomID() }}
+	if props.Variant == "" {
+		{{ props.Variant = button.VariantOutline }}
+	}
+	@tooltip.Trigger(tooltip.TriggerProps{
+		For: id,
+	}) {
+		@button.Button(button.Props{
+			Variant: props.Variant,
+			Size:    button.SizeSm,
+			Attributes: templ.Attributes{
+				"data-on-click": props.OnClick,
+			},
+		}) {
+			{ children... }
+		}
+		@tooltip.Content(tooltip.ContentProps{
+			ID:            id,
+			Position:      tooltip.PositionTop,
+			HoverDelay:    500,
+			HoverOutDelay: 100,
+		}) {
+			{ props.Tooltip }
+		}
 	}
 }

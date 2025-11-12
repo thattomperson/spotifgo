@@ -5,7 +5,7 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
-	"spotifgo/utils"
+	"spotifgo/internal/utils"
 	"time"
 
 	"github.com/go-chi/jwtauth/v5"
@@ -116,30 +116,6 @@ func (a *Auth) GetSpotifyClient(r *http.Request) *spotify.Client {
 }
 
 func (a *Auth) CallbackHandler(w http.ResponseWriter, r *http.Request) {
-	// get the user to this URL - how you do that is up to you
-	// you should specify a unique state string to identify the session
-
-	b := make([]byte, 32)
-	if _, err := rand.Read(b); err != nil {
-		http.Error(w, "Failed to generate state", http.StatusInternalServerError)
-		return
-	}
-	state := base64.URLEncoding.EncodeToString(b)
-
-	http.SetCookie(w, &http.Cookie{
-		Name:     "state",
-		Value:    state,
-		Path:     "/",
-		HttpOnly: true,
-		MaxAge:   int((time.Minute * 5) / time.Second),
-	})
-
-	url := a.auth.AuthURL(state)
-
-	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
-}
-
-func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
 	stateCookie, err := r.Cookie("state")
 	if err != nil {
 		log.Println(err)
@@ -173,6 +149,28 @@ func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
 		HttpOnly: true,
 	})
 	http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+
+}
+
+func (a *Auth) LoginHandler(w http.ResponseWriter, r *http.Request) {
+	b := make([]byte, 32)
+	if _, err := rand.Read(b); err != nil {
+		http.Error(w, "Failed to generate state", http.StatusInternalServerError)
+		return
+	}
+	state := base64.URLEncoding.EncodeToString(b)
+
+	http.SetCookie(w, &http.Cookie{
+		Name:     "state",
+		Value:    state,
+		Path:     "/",
+		HttpOnly: true,
+		MaxAge:   int((time.Minute * 5) / time.Second),
+	})
+
+	url := a.auth.AuthURL(state)
+
+	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
 func (a *Auth) LogoutHandler(w http.ResponseWriter, r *http.Request) {

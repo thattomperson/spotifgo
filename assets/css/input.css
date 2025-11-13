@@ -225,6 +225,10 @@
     .section-header {
       @apply text-lg;
     }
+
+    .music-column:not(.current-tab) {
+      display: none !important;
+    }
   }
 
   @media (max-width: 768px) {
@@ -246,10 +250,6 @@
 
     .glass {
       @apply p-4;
-    }
-
-    .music-column:not(.current-tab) {
-      display: none !important;
     }
   }
 
@@ -275,6 +275,18 @@
 
     100% {
       background-position: 200% 0;
+    }
+  }
+
+  .page-button {
+    @apply flex-1;
+
+    &:not(.current-tab) {
+      @apply border bg-background shadow-xs text-primary hover:bg-accent hover:text-accent-foreground dark:bg-input/30 dark:border-input dark:hover:bg-input/50;
+    }
+
+    &.current-tab {
+      @apply bg-primary text-primary-foreground shadow-xs hover:bg-primary/90;
     }
   }
 }

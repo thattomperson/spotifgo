@@ -2,7 +2,10 @@ package pages
 
 import (
 	"github.com/thattomperson/spotifgo/internal/handler"
+	"github.com/thattomperson/spotifgo/internal/ui/components/button"
+	"github.com/thattomperson/spotifgo/internal/ui/components/icon"
 	"github.com/thattomperson/spotifgo/internal/ui/layout"
+	"github.com/thattomperson/spotifgo/internal/utils/star/rpc"
 )
 
 templ HomePage(signals handler.SpotigoSignals) {
@@ -25,21 +28,40 @@ templ HomePage(signals handler.SpotigoSignals) {
 			data-on-load="@post('/rpc/get-top-songs', {requestCancellation: 'disabled'})"
 			class="max-w-7xl mx-auto px-6 pb-12"
 		>
-			// <div>
-			// 	<button data-on-click="$current_tab = 'currently_playing'">Currently Playing</button>
-			// 	<button data-on-click="$current_tab = 'recommended'">Recommended</button>
-			// 	<button data-on-click="$current_tab = 'you'">You</button>
-			// </div>
 			<!-- Three-column responsive grid -->
 			<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
 				// <!-- Column 1: Now Playing & Recently Played -->
-				<div data-class-current-tab="$current_tab == 'currently_playing'" class="current-tab music-column">
+				<div data-class-current-tab="$current_tab == 'currently_playing'" class="hidden lg:flex music-column">
 					<div class="music-section">
 						<h2 class="section-header">Now Playing</h2>
 						<div id="playing-song" class="min-h-[120px] flex items-center justify-center"></div>
 					</div>
 					<div class="music-section">
-						<h2 class="section-header">Recently Played</h2>
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="section-header">Recently Played</h2>
+							<div class="flex gap-2">
+								@button.Button(button.Props{
+									Variant: button.VariantOutline,
+									Size:    button.SizeSm,
+									Attributes: templ.Attributes{
+										"data-on-click": rpc.Post("queue-track", rpc.WithInclude("/^recent_songs/")),
+										"title":         "Queue all recently played songs",
+									},
+								}) {
+									@icon.ListStart(icon.Props{Size: 16})
+								}
+								@button.Button(button.Props{
+									Variant: button.VariantOutline,
+									Size:    button.SizeSm,
+									Attributes: templ.Attributes{
+										"data-on-click": rpc.Post("add-to-playlist", rpc.WithInclude("/^recent_songs/")),
+										"title":         "Add all recently played songs to current playlist",
+									},
+								}) {
+									@icon.ListPlus(icon.Props{Size: 16})
+								}
+							</div>
+						</div>
 						<div id="recent-songs"></div>
 					</div>
 				</div>
@@ -52,7 +74,31 @@ templ HomePage(signals handler.SpotigoSignals) {
 						</div>
 					</div>
 					<div class="music-section">
-						<h2 class="section-header">We Recommended</h2>
+						<div class="flex items-center justify-between mb-4">
+							<h2 class="section-header">We Recommended</h2>
+							<div class="flex gap-2">
+								@button.Button(button.Props{
+									Variant: button.VariantOutline,
+									Size:    button.SizeSm,
+									Attributes: templ.Attributes{
+										"data-on-click": rpc.Post("queue-track", rpc.WithInclude("/^recommended_songs/")),
+										"title":         "Queue all recommended songs",
+									},
+								}) {
+									@icon.ListStart(icon.Props{Size: 16})
+								}
+								@button.Button(button.Props{
+									Variant: button.VariantOutline,
+									Size:    button.SizeSm,
+									Attributes: templ.Attributes{
+										"data-on-click": rpc.Post("add-to-playlist", rpc.WithInclude("/^recommended_songs/")),
+										"title":         "Add all to current playlist",
+									},
+								}) {
+									@icon.ListPlus(icon.Props{Size: 16})
+								}
+							</div>
+						</div>
 						<div id="recommended-songs"></div>
 					</div>
 				</div>
@@ -71,6 +117,40 @@ templ HomePage(signals handler.SpotigoSignals) {
 			</div>
 			<div id="debug"></div>
 		</div>
+		<div class="glass flex fixed bottom-0 left-0 right-0 bg-background z-50 p-4 lg:hidden gap-2">
+			@button.Button(button.Props{
+				Class: "flex-1 page-button",
+				Attributes: templ.Attributes{
+					"data-class-current-tab": "$current_tab == 'currently_playing'",
+					"data-on-click":          "$current_tab = 'currently_playing'",
+				},
+			}) {
+				@icon.Play(icon.Props{Size: 16})
+				Currently Playing
+			}
+			@button.Button(button.Props{
+				Class: "flex-1 page-button",
+				Attributes: templ.Attributes{
+					"data-class-current-tab": "$current_tab == 'recommended'",
+					"data-on-click":          "$current_tab = 'recommended'",
+				},
+			}) {
+				@icon.ThumbsUp(icon.Props{Size: 16})
+				Recommended
+			}
+			@button.Button(button.Props{
+				Class:   "flex-1 page-button",
+				Variant: button.VariantOutline,
+				Attributes: templ.Attributes{
+					"data-class-current-tab": "$current_tab == 'you'",
+					"data-on-click":          "$current_tab = 'you'",
+				},
+			}) {
+				@icon.User(icon.Props{Size: 16})
+				You
+			}
+		</div>
+		<pre><code data-json-signals></code></pre>
 		<!-- Dialog Container -->
 		<div id="dialog-content" data-show="$dialog_open"></div>
 	}

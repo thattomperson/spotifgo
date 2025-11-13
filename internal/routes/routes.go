@@ -8,7 +8,7 @@ import (
 	"github.com/thattomperson/spotifgo/internal/auth"
 	"github.com/thattomperson/spotifgo/internal/handler"
 	"github.com/thattomperson/spotifgo/internal/ui/pages"
-	"github.com/thattomperson/spotifgo/internal/utils"
+	"github.com/thattomperson/spotifgo/internal/utils/star"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi/v5"
@@ -33,16 +33,18 @@ func SetupRoutes(app *app.App) {
 		r.Use(authService.VerifierMiddleware())
 		r.Use(authService.AuthMiddleware(auth.WithRedirectUrl("/auth/login")))
 
-		r.Get("/", templ.Handler(pages.HomePage(handler.SpotigoSignals{})).ServeHTTP)
+		r.Get("/", templ.Handler(pages.HomePage(handler.SpotigoSignals{
+			CurrentTab: "currently_playing",
+		})).ServeHTTP)
 
 		rpcHandlers := handler.NewRpcHandlers(authService)
 
-		r.Post("/rpc/get-playing-song", utils.Star(rpcHandlers.GetPlayingSong))
-		r.Post("/rpc/queue-track", utils.Star(rpcHandlers.QueueTrack))
-		r.Post("/rpc/add-to-playlist", utils.Star(rpcHandlers.AddToPlaylist))
-		r.Post("/rpc/update-selected-song", utils.Star(rpcHandlers.UpdateSelectedSong))
-		r.Post("/rpc/get-top-songs", utils.Star(rpcHandlers.GetTopSongs))
-		r.Post("/rpc/get-detailed-track-info", utils.Star(rpcHandlers.GetDetailedTrackInfo))
+		r.Post("/rpc/get-playing-song", star.Star(rpcHandlers.GetPlayingSong))
+		r.Post("/rpc/queue-track", star.Star(rpcHandlers.QueueTrack))
+		r.Post("/rpc/add-to-playlist", star.Star(rpcHandlers.AddToPlaylist))
+		r.Post("/rpc/update-selected-song", star.Star(rpcHandlers.UpdateSelectedSong))
+		r.Post("/rpc/get-top-songs", star.Star(rpcHandlers.GetTopSongs))
+		r.Post("/rpc/get-detailed-track-info", star.Star(rpcHandlers.GetDetailedTrackInfo))
 
 		r.Get("/auth/logout", authService.LogoutHandler)
 	})

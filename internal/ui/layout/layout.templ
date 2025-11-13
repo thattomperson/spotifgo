@@ -6,11 +6,18 @@ import (
 )
 
 templ Layout() {
-	<link rel="stylesheet" href="/assets/css/output.css"/>
-	{ children... }
-	<div id="toasts"></div>
-	// <script type="module" src="https://cdn.jsdelivr.net/gh/solidstarjs/solidstar@0.1.2/bundles/solidstar.js"></script>
-	<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
-	@toast.Script()
-	@popover.Script()
+	<html lang="en">
+		<head>
+			@toast.ToastCSS()
+			<link rel="stylesheet" href="/assets/css/output.css"/>
+			// <script type="module" src="https://cdn.jsdelivr.net/gh/solidstarjs/solidstar@0.1.2/bundles/solidstar.js"></script>
+			<script type="module" src="https://cdn.jsdelivr.net/gh/starfederation/datastar@main/bundles/datastar.js"></script>
+			@toast.Script()
+			@popover.Script()
+		</head>
+		<body>
+			{ children... }
+			<div id="toasts"></div>
+		</body>
+	</html>
 }

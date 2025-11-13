@@ -1,4 +1,4 @@
-package utils
+package star
 
 import (
 	"net/http"
@@ -6,6 +6,7 @@ import (
 
 	"github.com/a-h/templ"
 	datastar "github.com/starfederation/datastar-go/datastar"
+	"github.com/thattomperson/spotifgo/internal/ui/components/toast"
 )
 
 func ReadSignals[T any](w http.ResponseWriter, r *http.Request) *T {
@@ -35,6 +36,25 @@ func (r *DatastarWriter[T]) Append(selector string, component templ.Component) {
 
 func (r *DatastarWriter[T]) UpdateSignals(signals *T) {
 	r.Generator.MarshalAndPatchSignals(signals)
+}
+
+type ToastOption func(*toast.Props)
+
+func WithVariant(variant toast.Variant) ToastOption {
+	return func(props *toast.Props) {
+		props.Variant = variant
+	}
+}
+
+func (r *DatastarWriter[T]) ShowToast(title string, description string, opts ...ToastOption) {
+	props := &toast.Props{
+		Title:       title,
+		Description: description,
+	}
+	for _, opt := range opts {
+		opt(props)
+	}
+	r.Append("#toasts", toast.Toast(*props))
 }
 
 type StarFunc[T any] func(*DatastarWriter[T], *T, *http.Request)

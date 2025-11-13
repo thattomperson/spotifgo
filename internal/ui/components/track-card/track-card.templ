@@ -6,13 +6,15 @@ import (
 	"github.com/thattomperson/spotifgo/internal/ui/components/icon"
 	"github.com/thattomperson/spotifgo/internal/ui/components/tooltip"
 	"github.com/thattomperson/spotifgo/internal/utils"
+	"github.com/thattomperson/spotifgo/internal/utils/star/rpc"
 	spotify "github.com/zmb3/spotify/v2"
-	"net/url"
+	"strings"
 )
 
 type Props struct {
-	ID    string
-	Track spotify.SimpleTrack
+	ID         string
+	Track      spotify.SimpleTrack
+	SignalName string
 }
 
 type ListProps struct {
@@ -21,10 +23,18 @@ type ListProps struct {
 }
 
 templ List(props ListProps) {
-	<div id={ props.ID } class="flex flex-col gap-3">
+	{{ signalName := strings.ReplaceAll(props.ID, "-", "_") }}
+	<div
+		id={ props.ID }
+		if props.ID != "" {
+			data-signals={ "{" + signalName + ": []}" }
+		}
+		class="flex flex-col gap-3"
+	>
 		for _, track := range props.Tracks {
 			@TrackCard(Props{
-				Track: track,
+				SignalName: signalName,
+				Track:      track,
 			})
 		}
 	</div>
@@ -46,6 +56,9 @@ templ TrackCard(props Props) {
 	@card.Card(card.Props{ID: props.ID, Class: "track-card-enhanced w-full flex flex-row p-4", Attributes: templ.Attributes{
 		"data-track-id": props.Track.ID.String(),
 	}}) {
+		if props.SignalName != "" {
+			<input data-bind={ props.SignalName } class="hidden" type="checkbox" checked="checked" value={ props.Track.ID.String() }/>
+		}
 		<!-- Album Art Section -->
 		<div class="w-20 h-20 mr-4 flex-shrink-0">
 			if (len(props.Track.Album.Images) > 0) {
@@ -68,9 +81,7 @@ templ TrackCard(props Props) {
 				<h3 class="music-title truncate">
 					<button
 						class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
-						data-on-click={ utils.Rpc("get-detailed-track-info", url.Values{
-								"track_id": []string{props.Track.ID.String()},
-							}) }
+						data-on-click={ rpc.Post("get-detailed-track-info", rpc.WithParameter("track_id", props.Track.ID.String())) }
 					>
 						{ props.Track.Name }
 					</button>
@@ -78,10 +89,7 @@ templ TrackCard(props Props) {
 				<p class="music-artist truncate">
 					<button
 						class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
-						data-on-click={ "$dialog_open = true; $dialog_type = 'artist'; $dialog_item_id = '" + props.Track.Artists[0].ID.String() + "'; " +
-							utils.Rpc("get-detailed-track-info", url.Values{
-								"track_id": []string{props.Track.ID.String()},
-							}) }
+						data-on-click={ rpc.Post("get-detailed-track-info", rpc.WithParameter("track_id", props.Track.ID.String())) }
 					>
 						{ props.Track.Artists[0].Name }
 					</button>
@@ -90,10 +98,7 @@ templ TrackCard(props Props) {
 					<p class="music-album truncate">
 						<button
 							class="text-left hover:text-primary transition-colors cursor-pointer truncate w-full"
-							data-on-click={ "$dialog_open = true; $dialog_type = 'album'; $dialog_item_id = '" + props.Track.Album.ID.String() + "'; " +
-								utils.Rpc("get-detailed-track-info", url.Values{
-									"track_id": []string{props.Track.ID.String()},
-								}) }
+							data-on-click={ rpc.Post("get-detailed-track-info", rpc.WithParameter("track_id", props.Track.ID.String())) }
 						>
 							{ props.Track.Album.Name }
 						</button>
@@ -104,24 +109,20 @@ templ TrackCard(props Props) {
 			<div class="flex flex-row gap-2">
 				@Button(ButtonProps{
 					Tooltip: "Select track",
-					OnClick: "$selected_song = '" + props.Track.ID.String() + "'",
+					OnClick: "$current_tab = 'recommended'; $selected_song = '" + props.Track.ID.String() + "'",
 					Variant: button.VariantDefault,
 				}) {
 					@icon.Search(icon.Props{Size: 16})
 				}
 				@Button(ButtonProps{
 					Tooltip: "Queue track",
-					OnClick: utils.Rpc("queue-track", url.Values{
-						"track_id": []string{props.Track.ID.String()},
-					}),
+					OnClick: rpc.Post("queue-track", rpc.WithParameter("track_id", props.Track.ID.String())),
 				}) {
 					@icon.ListStart(icon.Props{Size: 16})
 				}
 				@Button(ButtonProps{
 					Tooltip: "Add to playlist",
-					OnClick: utils.Rpc("add-to-playlist", url.Values{
-						"track_id": []string{props.Track.ID.String()},
-					}),
+					OnClick: rpc.Post("add-to-playlist", rpc.WithParameter("track_id", props.Track.ID.String())),
 				}) {
 					@icon.ListPlus(icon.Props{Size: 16})
 				}

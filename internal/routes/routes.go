@@ -11,8 +11,8 @@ import (
 	"github.com/thattomperson/spotifgo/internal/utils"
 
 	"github.com/a-h/templ"
-	"github.com/go-chi/chi"
-	"github.com/go-chi/chi/middleware"
+	"github.com/go-chi/chi/v5"
+	"github.com/go-chi/chi/v5/middleware"
 )
 
 func SetupRoutes(app *app.App) {

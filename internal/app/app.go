@@ -5,7 +5,7 @@ import (
 
 	"github.com/thattomperson/spotifgo/internal/config"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 type App struct {

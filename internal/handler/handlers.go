@@ -8,11 +8,11 @@ import (
 	"sync"
 	"time"
 
-	"spotifgo/internal/auth"
-	"spotifgo/internal/ui/components/dialog"
-	"spotifgo/internal/ui/components/toast"
-	trackcard "spotifgo/internal/ui/components/track-card"
-	"spotifgo/internal/utils"
+	"github.com/thattomperson/spotifgo/internal/auth"
+	"github.com/thattomperson/spotifgo/internal/ui/components/dialog"
+	"github.com/thattomperson/spotifgo/internal/ui/components/toast"
+	trackcard "github.com/thattomperson/spotifgo/internal/ui/components/track-card"
+	"github.com/thattomperson/spotifgo/internal/utils"
 
 	"github.com/davecgh/go-spew/spew"
 	"github.com/zmb3/spotify/v2"

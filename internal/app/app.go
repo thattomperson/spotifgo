@@ -2,7 +2,8 @@ package app
 
 import (
 	"net/http"
-	"spotifgo/internal/config"
+
+	"github.com/thattomperson/spotifgo/internal/config"
 
 	"github.com/go-chi/chi"
 )

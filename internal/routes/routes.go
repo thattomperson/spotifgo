@@ -3,11 +3,12 @@ package routes
 import (
 	"net/http"
 	"os"
-	"spotifgo/internal/app"
-	"spotifgo/internal/auth"
-	"spotifgo/internal/handler"
-	"spotifgo/internal/ui/pages"
-	"spotifgo/internal/utils"
+
+	"github.com/thattomperson/spotifgo/internal/app"
+	"github.com/thattomperson/spotifgo/internal/auth"
+	"github.com/thattomperson/spotifgo/internal/handler"
+	"github.com/thattomperson/spotifgo/internal/ui/pages"
+	"github.com/thattomperson/spotifgo/internal/utils"
 
 	"github.com/a-h/templ"
 	"github.com/go-chi/chi"

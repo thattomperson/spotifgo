@@ -5,8 +5,9 @@ import (
 	"encoding/base64"
 	"log"
 	"net/http"
-	"spotifgo/internal/utils"
 	"time"
+
+	"github.com/thattomperson/spotifgo/internal/utils"
 
 	"github.com/go-chi/jwtauth/v5"
 	"github.com/zmb3/spotify/v2"
